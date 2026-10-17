@@ -15,7 +15,7 @@ import {
   type SearchTerms,
   type SearchVocabulary,
 } from './search-terms.js';
-export const mediaFields = `id idMal title{english romaji native} type format status countryOfOrigin tags{name rank isAdult isGeneralSpoiler isMediaSpoiler} startDate{year} season seasonYear popularity averageScore episodes chapters genres description(asHtml:false) bannerImage coverImage{large extraLarge color} trailer{id site}`;
+export const mediaFields = `id idMal title{english romaji native} type format status countryOfOrigin tags{name rank isAdult isGeneralSpoiler isMediaSpoiler} startDate{year} season seasonYear popularity averageScore episodes chapters genres synonyms description(asHtml:false) bannerImage coverImage{large extraLarge color} trailer{id site}`;
 // Titles always; studios for anime; the genre/tag vocabulary only until it is cached.
 const query = `query Search($search:String!,$type:MediaType,$country:CountryCode,$status:MediaStatus,$studios:Boolean!,$studioSearch:String,$vocab:Boolean!){
   Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,status:$status,isAdult:false,sort:SEARCH_MATCH){${mediaFields}}}
@@ -29,6 +29,7 @@ export interface AniMedia {
   id: number;
   idMal: number | null;
   title: { english: string | null; romaji: string; native: string | null };
+  synonyms?: string[] | null;
   type: 'ANIME' | 'MANGA';
   countryOfOrigin: string;
   format?: string;
@@ -72,7 +73,50 @@ export function featuresFor(genres: string[]): Taste {
     genres.some((g) => ['Fantasy', 'Supernatural'].includes(g)) ? 0.95 : 0.2,
   ];
 }
+// Words that show a name is English rather than romanized Japanese, Korean or Chinese.
+// "no" and "to" are left out on purpose: they are common Japanese particles.
+const englishWords = new Set(
+  "a an the of in on at is am are was be i i'm my me you your he his she her it its we our they their who what when where why how this that these those with without for from into after before and or but not still got get gets have has had do does did can will just again only as by all one my become became reincarnated".split(
+    ' ',
+  ),
+);
+/**
+ * AniList often leaves the English title empty for manhwa and manhua, while the official or
+ * fan English names sit among the synonyms. Pick the first that reads as English.
+ */
+export function englishSynonym(
+  synonyms: string[] | null | undefined,
+  romaji: string,
+  country?: string,
+) {
+  const same = (a: string) => a.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const wordsOf = (a: string) => a.toLowerCase().match(/[a-z']+/g) || [];
+  const latin = (synonyms || []).filter(
+    (name) =>
+      typeof name === 'string' &&
+      name.length <= 160 &&
+      !/[^\u0000-\u024f\u2000-\u206f]/.test(name) &&
+      same(name) !== same(romaji),
+  );
+  for (const name of latin) {
+    const words = wordsOf(name);
+    if (words.length >= 2 && words.some((w) => englishWords.has(w))) return name.trim();
+  }
+  // Korean and Chinese names: a Latin synonym sharing few words with the romanization is
+  // almost always a translation ("Homeless", "19 Days"). Japanese synonyms are more often
+  // nicknames like "Oregairu", so they don't get this second chance.
+  if (country !== 'KR' && country !== 'CN' && country !== 'TW') return null;
+  const romajiWords = new Set(wordsOf(romaji));
+  for (const name of latin) {
+    const words = wordsOf(name);
+    if (!words.length || !/[a-z]/.test(name)) continue;
+    const shared = words.filter((w) => romajiWords.has(w)).length;
+    if (shared / words.length < 0.5 && words.join('').length >= 4) return name.trim();
+  }
+  return null;
+}
 export function normalizeMedia(d: AniMedia): Title {
+  const english = d.title.english || englishSynonym(d.synonyms, d.title.romaji, d.countryOfOrigin);
   return {
     id: d.idMal || -d.id,
     anilistId: d.id,
@@ -99,9 +143,9 @@ export function normalizeMedia(d: AniMedia): Title {
       .slice(0, 32)
       .map((tag) => ({ name: tag.name.slice(0, 100), rank: Math.min(100, tag.rank || 0) })),
     bannerImage: httpsUrl(d.bannerImage),
-    title: d.title.english || d.title.romaji,
+    title: english || d.title.romaji,
     titles: {
-      english: d.title.english || null,
+      english: english || null,
       romaji: d.title.romaji || null,
       native: d.title.native || null,
     },
