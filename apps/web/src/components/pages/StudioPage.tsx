@@ -8,6 +8,7 @@ import { kindLabel, type StudioResponse, type Title, uniqueTitles } from '@anime
 import { getJson } from '@/lib/useApi';
 import { useRemember } from '@/lib/taste-engine';
 import TitleCard from '../TitleCard';
+import TitleGrid from '../TitleGrid';
 import LoadingShelf from '../LoadingShelf';
 
 const api = process.env.NEXT_PUBLIC_API_URL || '';
@@ -125,19 +126,19 @@ export default function StudioPage() {
             <h2>
               {y} <span>{list.length}</span>
             </h2>
-            <div className="title-grid">
+            <TitleGrid>
               {list.map((t) => (
                 <TitleCard key={`${t.format}:${t.id}`} item={t} />
               ))}
-            </div>
+            </TitleGrid>
           </section>
         ))
       ) : (
-        <div className="title-grid">
+        <TitleGrid>
           {items.map((t) => (
             <TitleCard key={`${t.format}:${t.id}`} item={t} />
           ))}
-        </div>
+        </TitleGrid>
       )}
       {!!pages.data?.[pages.data.length - 1]?.pageInfo.hasNextPage && (
         <div className="load-more">

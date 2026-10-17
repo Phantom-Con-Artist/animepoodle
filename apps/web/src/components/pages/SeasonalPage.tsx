@@ -20,6 +20,7 @@ import { useApp } from '@/lib/app-state';
 import { getJson } from '@/lib/useApi';
 import { useRemember } from '@/lib/taste-engine';
 import TitleCard from '../TitleCard';
+import TitleGrid from '../TitleGrid';
 import LoadingShelf from '../LoadingShelf';
 
 const api = process.env.NEXT_PUBLIC_API_URL || '';
@@ -167,11 +168,11 @@ export default function SeasonalPage() {
             <h2>
               {mediaKinds[g.kind]?.group || g.kind} <span>{g.items.length}</span>
             </h2>
-            <div className="title-grid">
+            <TitleGrid>
               {g.items.map((item) => (
                 <TitleCard key={`${item.format}:${item.id}`} item={item} />
               ))}
-            </div>
+            </TitleGrid>
           </section>
         ))
       ) : pages.error ? (

@@ -43,10 +43,19 @@ export function useHoverIntent(delay = 450, wrap?: (update: () => void) => void)
       },
       onPointerLeave: (e: React.PointerEvent) => {
         clearTimeout(timer.current!);
-        // Layout animations can fire a stray "leave"; only collapse if the pointer really left.
+        // View-transition snapshots temporarily clear :hover even with a stationary mouse.
+        // Test the pointer against the live card instead, so its player stays mounted.
         const el = e.currentTarget as HTMLElement;
+        const { clientX, clientY } = e;
         timer.current = setTimeout(() => {
-          if (!el.matches(':hover')) set(false);
+          const rect = el.getBoundingClientRect();
+          if (
+            clientX < rect.left ||
+            clientX >= rect.right ||
+            clientY < rect.top ||
+            clientY >= rect.bottom
+          )
+            set(false);
         }, 80);
       },
     },
@@ -81,6 +90,7 @@ export default function CardTrailer({
 }) {
   const [fetched, setFetched] = useState<Trailer | null | undefined>(undefined);
   const [clicked, setClicked] = useState(false);
+  const [hoverStopped, setHoverStopped] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const request = useRef<AbortController | null>(null);
@@ -89,6 +99,7 @@ export default function CardTrailer({
   useEffect(() => {
     setFetched(undefined);
     setClicked(false);
+    setHoverStopped(false);
     setError('');
   }, [item.id, item.format]);
 
@@ -96,7 +107,12 @@ export default function CardTrailer({
   const frame = useRef<HTMLIFrameElement>(null);
   const trailer = item.trailer !== undefined ? item.trailer : fetched;
   const unavailable = trailer === null;
-  const playing = !!trailer?.embedUrl && (clicked || hovering);
+  const playing = !!trailer?.embedUrl && (clicked || (hovering && !hoverStopped));
+
+  // An explicit stop wins over hover until the pointer leaves the card.
+  useEffect(() => {
+    if (!hovering) setHoverStopped(false);
+  }, [hovering]);
 
   useEffect(() => onPlayingChange?.(playing), [playing, onPlayingChange]);
   // The YouTube player reports its state over postMessage once we say we're listening.
@@ -129,10 +145,12 @@ export default function CardTrailer({
   }, [sound, playing, trailer]);
 
   async function toggle() {
-    if (clicked) {
+    if (playing) {
       setClicked(false);
+      setHoverStopped(true);
       return;
     }
+    setHoverStopped(false);
     if (trailer !== undefined) {
       if (trailer?.embedUrl) setClicked(true);
       return;
@@ -196,18 +214,18 @@ export default function CardTrailer({
             className="card-trailer-control"
             disabled={loading || unavailable}
             onClick={() => void toggle()}
-            aria-label={`${clicked ? 'Stop trailer for' : loading ? 'Loading trailer for' : unavailable ? 'No trailer available for' : 'Play trailer for'} ${item.title}`}
-            aria-pressed={clicked}
+            aria-label={`${playing ? 'Stop trailer for' : loading ? 'Loading trailer for' : unavailable ? 'No trailer available for' : 'Play trailer for'} ${item.title}`}
+            aria-pressed={playing}
           >
             {loading ? (
               <LoaderCircle size={12} />
-            ) : clicked ? (
+            ) : playing ? (
               <Square size={11} fill="currentColor" />
             ) : (
               <Play size={12} fill="currentColor" />
             )}
             <span>
-              {loading ? 'Loading' : clicked ? 'Stop' : unavailable ? 'No trailer' : 'Trailer'}
+              {loading ? 'Loading' : playing ? 'Stop' : unavailable ? 'No trailer' : 'Trailer'}
             </span>
           </button>
         ))}

@@ -6,6 +6,7 @@ import { moods } from '@animepoodle/shared';
 import { useApp } from '@/lib/app-state';
 import { useEngine } from '@/lib/taste-engine';
 import TitleCard from '../TitleCard';
+import TitleGrid from '../TitleGrid';
 import Poodle from '../Poodle';
 
 export default function ForYouPage() {
@@ -50,7 +51,7 @@ export default function ForYouPage() {
         <span>{engine.engine}</span>
       </h2>
       {ranked.length ? (
-        <div className="title-grid">
+        <TitleGrid>
           {ranked.map((r) => (
             <TitleCard
               key={`${r.item.format}:${r.item.id}`}
@@ -58,7 +59,7 @@ export default function ForYouPage() {
               match={matches.get(`${r.item.format}:${r.item.id}`)}
             />
           ))}
-        </div>
+        </TitleGrid>
       ) : (
         <div className="empty-state">
           <Poodle />

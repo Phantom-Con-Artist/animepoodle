@@ -77,6 +77,7 @@ function Story({ params }: { params: StoryParams }) {
   const mediaId = params.anilistId ? -params.anilistId : params.malId!;
   const [stashed, setStashed] = useState<Title | null>(null);
   const [reviewPage, setReviewPage] = useState(1);
+  const [failedBanner, setFailedBanner] = useState<string | null>(null);
   useEffect(() => setStashed(readStash(params)), [params]);
 
   const details = useSWR<MediaDetails, Error>(
@@ -209,7 +210,11 @@ function Story({ params }: { params: StoryParams }) {
       </Link>
       <section className="story-hero">
         <div className="story-banner">
-          {banner ? <img src={banner} alt="" /> : <span style={{ background: item.color }} />}
+          <img
+            src={banner && banner !== failedBanner ? banner : item.image}
+            alt=""
+            onError={() => setFailedBanner(banner || null)}
+          />
         </div>
         <div className="story-head">
           <div className="story-poster" style={{ background: item.color }}>

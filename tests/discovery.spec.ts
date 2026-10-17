@@ -418,6 +418,145 @@ test('card trailers play muted and looping on click and stop independently of sa
   await expect(frame).toHaveCount(0);
 });
 
+test('browse hover keeps one trailer mounted through enlargement and stops on leave', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Hover previews require a mouse.');
+  await page.goto('/browse');
+  const card = page.locator('.title-card').filter({ hasText: 'Frieren' });
+  await expect(card).toBeVisible();
+  const shelf = card.locator('..');
+  const before = await shelf.locator('.title-card').evaluateAll((cards) =>
+    cards.map((card) => {
+      const rect = card.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width };
+    }),
+  );
+  await card.evaluate((el) => {
+    el.setAttribute('data-player-mounts', '0');
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof Element && node.matches('.card-trailer-bg')) {
+            el.setAttribute(
+              'data-player-mounts',
+              String(Number(el.getAttribute('data-player-mounts')) + 1),
+            );
+          }
+        }
+      }
+    }).observe(el, { childList: true, subtree: true });
+  });
+  await card.hover();
+  const frame = card.locator('.card-trailer-bg iframe');
+  await expect(frame).toHaveCount(1);
+  await expect(card).toHaveClass(/is-previewing/);
+  // Keep the mouse stationary across several animation/hover-delay cycles.
+  await page.waitForTimeout(2500);
+  await expect(frame).toHaveCount(1);
+  await expect(card).toHaveAttribute('data-player-mounts', '1');
+  const after = await shelf.locator('.title-card').evaluateAll((cards) =>
+    cards.map((card) => {
+      const rect = card.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width };
+    }),
+  );
+  expect(after[0].width).toBeGreaterThan(before[0].width);
+  expect(after[0].width).toBeCloseTo(((before[0].width / 0.7) * 16) / 9, 0);
+  for (let i = 1; i < after.length; i++) {
+    expect(after[i].width).toBeLessThan(before[i].width);
+    expect(Math.abs(after[i].y - before[i].y)).toBeLessThan(1);
+  }
+  await page.mouse.move(0, 0);
+  await expect(frame).toHaveCount(0);
+  await expect(card).not.toHaveClass(/is-previewing/);
+});
+
+test('home shelf previews retain their original full landscape enlargement', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Hover previews require a mouse.');
+  await page.goto('/');
+  const shelf = page.locator('.rail-track').first();
+  const card = shelf.locator('.title-card').first();
+  const neighbour = shelf.locator('.title-card').nth(1);
+  const before = (await card.boundingBox())!;
+  const neighbourBefore = (await neighbour.boundingBox())!;
+  await card.hover();
+  await expect(card.locator('iframe')).toHaveCount(1);
+  await page.waitForTimeout(800);
+  const after = (await card.boundingBox())!;
+  const neighbourAfter = (await neighbour.boundingBox())!;
+  expect(after.width).toBeGreaterThan(before.width);
+  expect(after.width).toBeCloseTo(((before.width / 0.7) * 16) / 9, 0);
+  expect(neighbourAfter.width).toBeCloseTo(neighbourBefore.width, 0);
+  expect(Math.abs(neighbourAfter.y - after.y - (neighbourBefore.y - before.y))).toBeLessThan(1);
+  await page.mouse.move(0, 0);
+  await expect(card.locator('iframe')).toHaveCount(0);
+});
+
+test('mobile trailers play inline without expanding shelves and stop on tap', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, 'Touch playback check.');
+  await page.goto('/browse');
+  const card = page.locator('.title-card').filter({ hasText: 'Frieren' });
+  await expect(card).toBeVisible();
+  const before = (await card.boundingBox())!;
+  await card.getByRole('button', { name: /Play trailer for/ }).tap();
+  await expect(card.locator('iframe')).toHaveCount(1);
+  await expect(card).not.toHaveClass(/is-previewing/);
+  expect((await card.boundingBox())!.width).toBeCloseTo(before.width, 0);
+  expect(await noOverflow(page)).toBe(true);
+  await card.getByRole('button', { name: /Stop trailer for/ }).tap();
+  await expect(card.locator('iframe')).toHaveCount(0);
+});
+
+test('grid previews keep every card on its shelf at the left and right edges', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Desktop shelf layout check.');
+  const list = Array.from({ length: 12 }, (_, i) => ({ ...items[0], id: 9000 + i }));
+  await page.route('**/api/browse?*', (route) =>
+    route.fulfill({
+      json: {
+        items: list,
+        pageInfo: { currentPage: 1, hasNextPage: false, total: list.length },
+      },
+    }),
+  );
+  await page.goto('/browse');
+  const cards = page.locator('.title-card');
+  await expect(cards).toHaveCount(12);
+  for (const width of [1440, 900]) {
+    await page.mouse.move(0, 0);
+    await page.setViewportSize({ width, height: 1100 });
+    await page.waitForTimeout(300);
+    const count = await page.locator('.title-shelf').first().locator('.title-card').count();
+    for (const index of [0, count - 1, count]) {
+      const before = await cards.evaluateAll((els) =>
+        els.map((el) => el.getBoundingClientRect().y + window.scrollY),
+      );
+      const active = cards.nth(index);
+      await active.hover();
+      await expect(active.locator('iframe')).toHaveCount(1);
+      await page.waitForTimeout(350);
+      const after = await cards.evaluateAll((els) =>
+        els.map((el) => el.getBoundingClientRect().y + window.scrollY),
+      );
+      after.forEach((y, i) => expect(Math.abs(y - before[i])).toBeLessThan(1));
+      expect(await noOverflow(page)).toBe(true);
+      await page.mouse.move(0, 0);
+      await expect(active.locator('iframe')).toHaveCount(0);
+      await page.waitForTimeout(250);
+    }
+  }
+});
+
 test('soundtrack extras load on demand and play on click', async ({ page }) => {
   let extras = 0;
   await page.route('**/api/extras?*', (route) => {

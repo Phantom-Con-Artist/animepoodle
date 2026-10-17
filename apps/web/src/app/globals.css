@@ -1358,7 +1358,10 @@ input[type='range']::-moz-range-thumb {
   border-top: 0;
 }
 .story-panel .synopsis {
-  margin-bottom: 12px;
+  max-width: none;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  margin-bottom: 16px;
 }
 .story-subhead {
   margin: 18px 0 8px;
@@ -2393,26 +2396,46 @@ kbd {
 .rail-track .title-card.is-previewing {
   flex-basis: calc(var(--card-w) / 0.7 * 16 / 9);
 }
-/* Grid previews keep the card's height (so it stays under the pointer) and fit the whole
-   16:9 trailer inside it, with slim bars rather than cropping the picture. */
-.title-grid .title-card.is-pinned .poster-wrap {
-  aspect-ratio: auto;
-  height: var(--poster-h);
+/* Shelves retain their cards and height while neighbours share width with a preview. */
+.title-shelf {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--shelf-gap);
+  align-items: start;
+  transition: grid-template-columns 0.22s ease-out;
 }
-.title-grid .title-card.is-pinned .card-trailer-bg iframe {
+.title-shelf .poster-wrap {
+  aspect-ratio: auto;
+  height: var(--shelf-poster-h);
+}
+.title-shelf .card-title {
+  min-height: 2.5em;
+}
+.title-shelf .card-meta,
+.title-shelf .card-tags {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+}
+@media (pointer: coarse) {
+  .card-trailer-control,
+  .card-sound-control {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-shelf,
+  .rail-track .title-card {
+    transition: none;
+  }
+}
+.title-shelf .card-trailer-bg iframe {
   min-width: 0;
   min-height: 0;
   width: 100%;
   height: auto;
   max-height: 100%;
-}
-/* The transition overlay must not steal the pointer, or the hovered card would collapse. */
-::view-transition {
-  pointer-events: none;
-}
-::view-transition-group(*) {
-  animation-duration: 0.45s;
-  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .card-skeleton {
   display: block;
@@ -2430,6 +2453,7 @@ kbd {
 
 /* ── Title cards ─────────────────────────────────────────── */
 .title-grid {
+  --shelf-gap: 14px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px 14px;
@@ -4103,6 +4127,7 @@ a.cast-person:hover strong {
     padding-right: 24px;
   }
   .title-grid {
+    --shelf-gap: 18px;
     grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
     gap: 26px 18px;
   }

@@ -14,6 +14,7 @@ import {
 } from '@/lib/library';
 import { stashStory, storyHref } from '@/lib/story';
 import TitleCard from '../TitleCard';
+import TitleGrid from '../TitleGrid';
 import StatusMenu from '../StatusMenu';
 import Poodle from '../Poodle';
 
@@ -184,11 +185,11 @@ export default function LibraryPage() {
               </h2>
             )}
             {view === 'grid' ? (
-              <div className="title-grid">
+              <TitleGrid>
                 {g.items.map((e) => (
                   <TitleCard key={`${e.item.format}:${e.item.id}`} item={e.item} />
                 ))}
-              </div>
+              </TitleGrid>
             ) : (
               <ul className="library-list">
                 {g.items.map((e) => (

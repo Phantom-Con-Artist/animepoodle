@@ -20,6 +20,7 @@ import { useRemember } from '@/lib/taste-engine';
 import { useCatalogSWR } from '@/lib/useCatalogSWR';
 import { acceptGenre, useGenres } from '@/lib/useGenres';
 import TitleCard from '../TitleCard';
+import TitleGrid from '../TitleGrid';
 import LoadingShelf from '../LoadingShelf';
 import Poodle from '../Poodle';
 
@@ -331,11 +332,11 @@ export default function BrowsePage() {
       {loading && !items.length ? (
         <LoadingShelf label={section.plural} />
       ) : items.length ? (
-        <div className="title-grid">
+        <TitleGrid>
           {items.map((item) => (
             <TitleCard key={`${item.format}:${item.id}`} item={item} />
           ))}
-        </div>
+        </TitleGrid>
       ) : error ? (
         <div className="extras-error" role="status">
           <p>{error.message}</p>
