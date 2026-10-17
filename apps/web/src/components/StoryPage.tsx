@@ -36,6 +36,7 @@ import {
 import StoryExtras from './StoryExtras';
 import Comments from './Comments';
 import StatusMenu from './StatusMenu';
+import HypeButton from './HypeButton';
 import { releaseLabel } from './TitleCard';
 
 const api = process.env.NEXT_PUBLIC_API_URL || '';
@@ -249,6 +250,7 @@ function Story({ params }: { params: StoryParams }) {
             )}
             <div className="story-actions">
               <StatusMenu item={item} />
+              <HypeButton item={item} />
               <label className="story-rating">
                 <span>Your rating</span>
                 <select

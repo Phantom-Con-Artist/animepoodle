@@ -14,8 +14,13 @@ import {
   validKinds,
   validSeason,
 } from './browse.js';
-export const app = new Hono();
-app.use('/api/*', cors({ origin: 'http://localhost:3000' }));
+import { hypeApp, type HypeBindings } from './hype';
+export const app = new Hono<{ Bindings: HypeBindings }>();
+app.use(
+  '/api/*',
+  cors({ origin: 'http://localhost:3000', allowHeaders: ['Content-Type', 'X-Hype-Voter'] }),
+);
+app.route('/api/hype', hypeApp);
 app.get('/api/health', (c) => c.json({ ok: true, service: 'animepoodle-api' }));
 app.get('/api/catalog', (c) =>
   c.redirect(

@@ -12,11 +12,12 @@ const nav = [
   { href: '/', label: 'Home' },
   { href: '/browse', label: 'Browse' },
   { href: '/top', label: 'Top rated' },
+  { href: '/hype', label: 'This year’s Hype' },
   { href: '/seasonal', label: 'Seasonal', watchOnly: true },
   { href: '/for-you', label: 'For you' },
 ];
 // Pages that show one section at a time get the section switcher.
-const sectionPages = ['/', '/browse', '/top', '/seasonal', '/for-you'];
+const sectionPages = ['/', '/browse', '/top', '/seasonal', '/for-you', '/hype'];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const app = useApp();
@@ -228,6 +229,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <h2>Explore</h2>
             <Link href="/browse">Browse</Link>
             <Link href="/top">Top rated</Link>
+            <Link href="/hype">This year’s Hype</Link>
             <Link href="/seasonal">Seasonal anime</Link>
             <Link href="/for-you">For you</Link>
           </div>

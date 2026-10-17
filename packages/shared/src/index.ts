@@ -372,3 +372,5 @@ export function displayTitle(item: Title, language: TitleLanguage = 'english') {
   if (language === 'native') return t.native || t.romaji || item.title;
   return t.english || t.romaji || item.title;
 }
+
+export * from './hype';

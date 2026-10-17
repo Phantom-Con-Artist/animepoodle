@@ -465,7 +465,7 @@ test('browse hover keeps one trailer mounted through enlargement and stops on le
   const before = await shelf.locator('.title-card').evaluateAll((cards) =>
     cards.map((card) => {
       const rect = card.getBoundingClientRect();
-      return { x: rect.x, y: rect.y, width: rect.width };
+      return { x: rect.x, y: rect.y + window.scrollY, width: rect.width };
     }),
   );
   await card.evaluate((el) => {
@@ -494,7 +494,7 @@ test('browse hover keeps one trailer mounted through enlargement and stops on le
   const after = await shelf.locator('.title-card').evaluateAll((cards) =>
     cards.map((card) => {
       const rect = card.getBoundingClientRect();
-      return { x: rect.x, y: rect.y, width: rect.width };
+      return { x: rect.x, y: rect.y + window.scrollY, width: rect.width };
     }),
   );
   expect(after[0].width).toBeGreaterThan(before[0].width);

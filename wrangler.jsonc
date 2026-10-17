@@ -2,5 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "animepoodle",
   "pages_build_output_dir": "./apps/web/out",
+  // Run npm run hype:database once to add the real HYPE_DB binding.
+  "vars": { "HYPE_DAILY_VOTE_CAP": "2000" },
   "compatibility_date": "2026-10-17",
 }

@@ -1,0 +1,144 @@
+# Page dependencies
+## apps/web/src/app/page.tsx
+- apps/web/src/app/page.tsx
+  - apps/web/src/components/pages/HomePage.tsx
+    - apps/web/src/lib/app-state.tsx
+      - apps/web/src/lib/local-catalog.ts
+      - apps/web/src/lib/story.ts
+      - apps/web/src/lib/library.ts
+    - apps/web/src/lib/useApi.ts
+    - apps/web/src/lib/taste-engine.tsx
+      - apps/web/src/lib/useLocalCatalog.ts
+      - apps/web/src/lib/useRecommendations.ts
+    - apps/web/src/components/HighlightHero.tsx
+      - apps/web/src/components/TitleCard.tsx
+        - apps/web/src/components/CardTrailer.tsx
+          - apps/web/src/lib/trailers.ts
+          - apps/web/src/lib/trailer-sound.ts
+        - apps/web/src/components/StatusMenu.tsx
+    - apps/web/src/components/Rail.tsx
+## apps/web/src/app/story/page.tsx
+- apps/web/src/app/story/page.tsx
+  - apps/web/src/components/StoryPage.tsx
+    - apps/web/src/lib/app-state.tsx
+      - apps/web/src/lib/local-catalog.ts
+      - apps/web/src/lib/story.ts
+      - apps/web/src/lib/library.ts
+    - apps/web/src/lib/useApi.ts
+    - apps/web/src/components/StoryExtras.tsx
+      - apps/web/src/lib/trailers.ts
+      - apps/web/src/components/SupplementalMedia.tsx
+    - apps/web/src/components/Comments.tsx
+    - apps/web/src/components/StatusMenu.tsx
+    - apps/web/src/components/TitleCard.tsx
+      - apps/web/src/components/CardTrailer.tsx
+        - apps/web/src/lib/trailer-sound.ts
+## apps/web/src/app/rules/page.tsx
+- apps/web/src/app/rules/page.tsx
+## apps/web/src/app/browse/page.tsx
+- apps/web/src/app/browse/page.tsx
+  - apps/web/src/components/pages/BrowsePage.tsx
+    - apps/web/src/lib/app-state.tsx
+      - apps/web/src/lib/local-catalog.ts
+      - apps/web/src/lib/story.ts
+      - apps/web/src/lib/library.ts
+    - apps/web/src/lib/useApi.ts
+    - apps/web/src/lib/taste-engine.tsx
+      - apps/web/src/lib/useLocalCatalog.ts
+      - apps/web/src/lib/useRecommendations.ts
+    - apps/web/src/lib/useCatalogSWR.ts
+    - apps/web/src/lib/useGenres.ts
+    - apps/web/src/components/TitleCard.tsx
+      - apps/web/src/components/CardTrailer.tsx
+        - apps/web/src/lib/trailers.ts
+        - apps/web/src/lib/trailer-sound.ts
+      - apps/web/src/components/StatusMenu.tsx
+    - apps/web/src/components/TitleGrid.tsx
+    - apps/web/src/components/LoadingShelf.tsx
+      - apps/web/src/components/Poodle.tsx
+## apps/web/src/app/top/page.tsx
+- apps/web/src/app/top/page.tsx
+  - apps/web/src/components/pages/TopPage.tsx
+    - apps/web/src/lib/app-state.tsx
+      - apps/web/src/lib/local-catalog.ts
+      - apps/web/src/lib/story.ts
+      - apps/web/src/lib/library.ts
+    - apps/web/src/lib/useApi.ts
+    - apps/web/src/lib/useGenres.ts
+    - apps/web/src/lib/taste-engine.tsx
+      - apps/web/src/lib/useLocalCatalog.ts
+      - apps/web/src/lib/useRecommendations.ts
+    - apps/web/src/components/TitleCard.tsx
+      - apps/web/src/components/CardTrailer.tsx
+        - apps/web/src/lib/trailers.ts
+        - apps/web/src/lib/trailer-sound.ts
+      - apps/web/src/components/StatusMenu.tsx
+## apps/web/src/app/seasonal/page.tsx
+- apps/web/src/app/seasonal/page.tsx
+  - apps/web/src/components/pages/SeasonalPage.tsx
+    - apps/web/src/lib/app-state.tsx
+      - apps/web/src/lib/local-catalog.ts
+      - apps/web/src/lib/story.ts
+      - apps/web/src/lib/library.ts
+    - apps/web/src/lib/useApi.ts
+    - apps/web/src/lib/taste-engine.tsx
+      - apps/web/src/lib/useLocalCatalog.ts
+      - apps/web/src/lib/useRecommendations.ts
+    - apps/web/src/components/TitleCard.tsx
+      - apps/web/src/components/CardTrailer.tsx
+        - apps/web/src/lib/trailers.ts
+        - apps/web/src/lib/trailer-sound.ts
+      - apps/web/src/components/StatusMenu.tsx
+    - apps/web/src/components/TitleGrid.tsx
+    - apps/web/src/components/LoadingShelf.tsx
+      - apps/web/src/components/Poodle.tsx
+## apps/web/src/app/for-you/page.tsx
+- apps/web/src/app/for-you/page.tsx
+  - apps/web/src/components/pages/ForYouPage.tsx
+    - apps/web/src/lib/app-state.tsx
+      - apps/web/src/lib/local-catalog.ts
+      - apps/web/src/lib/story.ts
+      - apps/web/src/lib/library.ts
+    - apps/web/src/lib/taste-engine.tsx
+      - apps/web/src/lib/useLocalCatalog.ts
+      - apps/web/src/lib/useRecommendations.ts
+    - apps/web/src/components/TitleCard.tsx
+      - apps/web/src/components/CardTrailer.tsx
+        - apps/web/src/lib/trailers.ts
+        - apps/web/src/lib/trailer-sound.ts
+      - apps/web/src/components/StatusMenu.tsx
+    - apps/web/src/components/TitleGrid.tsx
+    - apps/web/src/components/Poodle.tsx
+## apps/web/src/app/library/page.tsx
+- apps/web/src/app/library/page.tsx
+  - apps/web/src/components/pages/LibraryPage.tsx
+    - apps/web/src/lib/app-state.tsx
+      - apps/web/src/lib/local-catalog.ts
+      - apps/web/src/lib/story.ts
+      - apps/web/src/lib/library.ts
+    - apps/web/src/components/TitleCard.tsx
+      - apps/web/src/components/CardTrailer.tsx
+        - apps/web/src/lib/trailers.ts
+        - apps/web/src/lib/trailer-sound.ts
+      - apps/web/src/components/StatusMenu.tsx
+    - apps/web/src/components/TitleGrid.tsx
+    - apps/web/src/components/Poodle.tsx
+## apps/web/src/app/studio/page.tsx
+- apps/web/src/app/studio/page.tsx
+  - apps/web/src/components/pages/StudioPage.tsx
+    - apps/web/src/lib/useApi.ts
+    - apps/web/src/lib/taste-engine.tsx
+      - apps/web/src/lib/app-state.tsx
+        - apps/web/src/lib/local-catalog.ts
+        - apps/web/src/lib/story.ts
+        - apps/web/src/lib/library.ts
+      - apps/web/src/lib/useLocalCatalog.ts
+      - apps/web/src/lib/useRecommendations.ts
+    - apps/web/src/components/TitleCard.tsx
+      - apps/web/src/components/CardTrailer.tsx
+        - apps/web/src/lib/trailers.ts
+        - apps/web/src/lib/trailer-sound.ts
+      - apps/web/src/components/StatusMenu.tsx
+    - apps/web/src/components/TitleGrid.tsx
+    - apps/web/src/components/LoadingShelf.tsx
+      - apps/web/src/components/Poodle.tsx

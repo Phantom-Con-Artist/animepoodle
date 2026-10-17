@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "/hype": {
+      "targetKind": "new-ui",
+      "projectId": "e003c07c-c7aa-4f32-8df2-89a4063b6cb8",
+      "activeDraftId": "5f1e41a4-e354-44b3-975d-092bbd8da63e",
+      "designSystemPath": ".superdesign/design-system.md",
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        "apps/web/src/components/pages/TopPage.tsx",
+        "apps/web/src/app/globals.css:1:110"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "fdf607e3dba4919f0db8a7c87c9ee1d747aacfac6d4de23792431dec88bb6bad",
+        "apps/web/src/components/pages/TopPage.tsx": "2b6da21c41201306ed8c9faf7c3c99767f3e2bc7584c14c71a473127ffe78548",
+        "apps/web/src/app/globals.css": "4f75981da5bae9efbe5943d82d6e27864e79c8567b4d0583b7b34303539d1e87"
+      },
+      "drafts": {
+        "5f1e41a4-e354-44b3-975d-092bbd8da63e": {
+          "title": "Animepoodle Hype Leaderboard",
+          "visualDirection": "Existing outlined pastel theme; main content only; daily global allowance and per-section yearly chart",
+          "currentVersion": 1
+        }
+      },
+      "updatedAt": "2026-10-17T17:53:06.423848+00:00"
+    }
+  }
+}
