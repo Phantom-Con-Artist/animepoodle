@@ -6008,3 +6008,26 @@ img[data-loaded]:not(.reader-page > img) {
     padding-top: 10px;
   }
 }
+
+@media (max-width: 639px) {
+  /* Seasonal: type counts on one swipeable line. */
+  .kind-jump {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 -16px 14px;
+    padding: 2px 16px;
+    scrollbar-width: none;
+  }
+  .kind-jump a,
+  .kind-jump small {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .season-picker {
+    margin-bottom: 10px;
+  }
+  /* Library: the status tabs already carry every count, so the tiles would repeat them. */
+  .library-stats {
+    display: none;
+  }
+}

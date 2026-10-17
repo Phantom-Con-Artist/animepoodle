@@ -18,6 +18,7 @@ import { useApp } from '@/lib/app-state';
 import { getJson } from '@/lib/useApi';
 import { useRemember } from '@/lib/taste-engine';
 import { useCatalogSWR } from '@/lib/useCatalogSWR';
+import { titleCount } from '@/lib/counts';
 import { acceptGenre, useGenres } from '@/lib/useGenres';
 import TitleCard from '../TitleCard';
 import TitleGrid from '../TitleGrid';
@@ -317,9 +318,7 @@ export default function BrowsePage() {
             ? 'Loading…'
             : q
               ? `${items.length} ${items.length === 1 ? 'result' : 'results'}${search.data?.source ? ` from ${search.data.source}` : ''}`
-              : total
-                ? `${total.toLocaleString()} titles`
-                : `${items.length} titles`}
+              : `${titleCount(total, items.length, hasMore)} titles`}
         </span>
       </div>
 

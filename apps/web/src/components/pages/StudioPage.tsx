@@ -70,7 +70,7 @@ export default function StudioPage() {
           <h1>{studio?.name || 'Loading studio…'}</h1>
           {studio && (
             <p className="studio-facts">
-              {studio.pageInfo.total ? (
+              {studio.pageInfo.total && studio.pageInfo.total < 5000 ? (
                 <span>{studio.pageInfo.total} titles as main studio</span>
               ) : null}
               <span>

@@ -19,6 +19,7 @@ import {
 import { useApp } from '@/lib/app-state';
 import { getJson } from '@/lib/useApi';
 import { useRemember } from '@/lib/taste-engine';
+import { titleCount } from '@/lib/counts';
 import TitleCard from '../TitleCard';
 import TitleGrid from '../TitleGrid';
 import LoadingShelf from '../LoadingShelf';
@@ -157,7 +158,9 @@ export default function SeasonalPage() {
               {mediaKinds[g.kind]?.group || g.kind} <span>{g.items.length}</span>
             </a>
           ))}
-          {total ? <small>{total} titles this season</small> : null}
+          {items.length ? (
+            <small>{titleCount(total, items.length, hasMore)} titles this season</small>
+          ) : null}
         </nav>
       )}
       {pages.isLoading ? (
