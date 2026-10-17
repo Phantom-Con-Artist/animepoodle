@@ -3,7 +3,14 @@ const path = 'apps/web/public/wasm/recommender.wasm';
 try {
   const bytes = readFileSync(path);
   const { instance } = await WebAssembly.instantiate(bytes);
-  if (typeof instance.exports.score !== 'function') throw new Error('Missing score export');
+  for (const name of [
+    'score',
+    'vector_buffer',
+    'vector_cosine',
+    'posterior_mean',
+    'posterior_variance',
+  ])
+    if (typeof instance.exports[name] !== 'function') throw new Error(`Missing ${name} export`);
   console.log(
     'Prebuilt Rust/WebAssembly engine verified. No Rust toolchain required for deployment.',
   );

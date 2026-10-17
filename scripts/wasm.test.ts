@@ -1,7 +1,8 @@
+import { catalog } from '../tests/fixtures/catalog';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { catalog, defaultTaste, scoreTitle, type Taste } from '../packages/shared/src/index';
+import { defaultTaste, scoreTitle, type Taste } from '../packages/shared/src/index';
 test('shipped WebAssembly scores match JavaScript fallback for the full catalog', async () => {
   const { instance } = await WebAssembly.instantiate(
     await readFile('apps/web/public/wasm/recommender.wasm'),

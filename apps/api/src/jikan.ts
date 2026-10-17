@@ -9,6 +9,7 @@ interface JikanItem {
   title_english?: string | null;
   title_japanese?: string | null;
   type?: string;
+  status?: string;
   year?: number;
   score?: number;
   episodes?: number;
@@ -39,6 +40,17 @@ export function normalizeJikan(d: JikanItem, manga: boolean): Title | null {
     id: d.mal_id,
     malId: d.mal_id,
     source: 'Jikan',
+    status: ['Currently Airing', 'Publishing'].includes(d.status || '')
+      ? 'RELEASING'
+      : ['Finished Airing', 'Finished'].includes(d.status || '')
+        ? 'FINISHED'
+        : ['Not yet aired', 'Not yet published'].includes(d.status || '')
+          ? 'NOT_YET_RELEASED'
+          : d.status === 'On Hiatus'
+            ? 'HIATUS'
+            : d.status === 'Discontinued'
+              ? 'CANCELLED'
+              : undefined,
     title: d.title_english || d.title,
     original: d.title_japanese || d.title,
     format: manga
@@ -64,7 +76,7 @@ export function normalizeJikan(d: JikanItem, manga: boolean): Title | null {
     features: featuresFor(genres),
   };
 }
-export async function searchJikan(q: string, format: string): Promise<Title[]> {
+export async function searchJikan(q: string, format: string, status = 'ALL'): Promise<Title[]> {
   if (format === 'Donghua') return []; // Jikan has no reliable country-of-origin filter.
   const kinds =
     format === 'All'
@@ -75,6 +87,18 @@ export async function searchJikan(q: string, format: string): Promise<Title[]> {
   const results = await Promise.allSettled(
     kinds.map(async (kind) => {
       const params = new URLSearchParams({ q, limit: '18', sfw: 'true' });
+      const statuses: Record<string, string> =
+        kind === 'anime'
+          ? { RELEASING: 'airing', FINISHED: 'complete', NOT_YET_RELEASED: 'upcoming' }
+          : {
+              RELEASING: 'publishing',
+              FINISHED: 'complete',
+              NOT_YET_RELEASED: 'upcoming',
+              HIATUS: 'hiatus',
+              CANCELLED: 'discontinued',
+            };
+      if (status !== 'ALL' && !statuses[status]) return [];
+      if (statuses[status]) params.set('status', statuses[status]);
       if (kind === 'manga' && format !== 'All') params.set('type', format.toLowerCase());
       const body = await request<{ data: JikanItem[] }>(`/${kind}?${params}`);
       if (!Array.isArray(body.data))
@@ -169,4 +193,36 @@ export async function getJikanExtras(malId: number, anime: boolean) {
     themes,
     partial: tasks.some((r) => r.status === 'rejected'),
   };
+}
+
+export async function discoverJikan(
+  format: string,
+  status: string,
+  sort: string,
+): Promise<Title[]> {
+  if (format === 'Donghua') return [];
+  const manga = ['Manga', 'Manhwa', 'Manhua'].includes(format);
+  const kind = manga ? 'manga' : 'anime';
+  const statusMap: Record<string, string> = manga
+    ? {
+        RELEASING: 'publishing',
+        FINISHED: 'complete',
+        NOT_YET_RELEASED: 'upcoming',
+        HIATUS: 'hiatus',
+        CANCELLED: 'discontinued',
+      }
+    : { RELEASING: 'airing', FINISHED: 'complete', NOT_YET_RELEASED: 'upcoming' };
+  if (status !== 'ALL' && !statusMap[status]) return [];
+  const params = new URLSearchParams({
+    limit: '30',
+    sfw: 'true',
+    order_by:
+      sort === 'SCORE_DESC' ? 'score' : sort === 'START_DATE_DESC' ? 'start_date' : 'popularity',
+    sort: sort === 'POPULARITY_DESC' || sort === 'TRENDING_DESC' ? 'asc' : 'desc',
+  });
+  if (status !== 'ALL') params.set('status', statusMap[status]);
+  if (manga) params.set('type', format.toLowerCase());
+  const body = await request<{ data: JikanItem[] }>(`/${kind}?${params}`);
+  if (!Array.isArray(body.data)) throw new CatalogError('Jikan returned an unreadable catalog.');
+  return body.data.map((d) => normalizeJikan(d, manga)).filter((t): t is Title => !!t);
 }

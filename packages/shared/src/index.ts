@@ -15,6 +15,10 @@ export interface Title {
   malId?: number;
   source?: 'AniList' | 'Jikan';
   bannerImage?: string | null;
+  tags?: FeatureTag[];
+  mediaFormat?: string;
+  origin?: string;
+  status?: ReleaseStatus;
   title: string;
   original: string;
   format: Format;
@@ -54,318 +58,17 @@ export const moods: { name: string; emoji: string; taste: Taste; description: st
     description: 'A warm hug in story form',
   },
 ];
-export const catalog: Title[] = [
-  {
-    id: 52991,
-    anilistId: 154587,
-    malId: 52991,
-    title: 'Frieren: Beyond Journey’s End',
-    original: '葬送のフリーレン',
-    format: 'Anime',
-    year: 2023,
-    rating: 9.3,
-    episodes: '28 episodes',
-    genres: ['Adventure', 'Fantasy', 'Drama'],
-    description:
-      'The adventure is over. A new journey begins. An elven mage rediscovers the meaning of friendship, one quiet moment at a time.',
-    image: '/images/frieren.jpg',
-    color: '#54785e',
-    features: [0.9, 1, 0.45, 0.4, 0.85, 1],
-  },
-  {
-    id: 52299,
-    anilistId: 151807,
-    malId: 52299,
-    title: 'Solo Leveling',
-    original: '俺だけレベルアップな件',
-    format: 'Anime',
-    year: 2024,
-    rating: 8.3,
-    episodes: '12 episodes',
-    genres: ['Action', 'Fantasy', 'Adventure'],
-    description:
-      'The weakest hunter finds a mysterious system that lets him grow stronger without limits. Every dungeon brings a new kind of danger.',
-    image: '/images/solo.jpg',
-    color: '#484884',
-    features: [0.8, 0.45, 1, 0.7, 0.1, 0.95],
-  },
-  {
-    id: 40748,
-    anilistId: 113415,
-    malId: 40748,
-    title: 'Jujutsu Kaisen',
-    original: '呪術廻戦',
-    format: 'Anime',
-    year: 2020,
-    rating: 8.5,
-    episodes: '24 episodes',
-    genres: ['Action', 'Supernatural'],
-    description:
-      'A kindhearted teenager swallows a cursed object and enters a hidden world of sorcerers, dangerous spirits, and impossible choices.',
-    image: '/images/jujutsu.jpg',
-    color: '#647b78',
-    features: [0.6, 0.65, 1, 0.7, 0.1, 0.9],
-  },
-  {
-    id: 16498,
-    anilistId: 16498,
-    malId: 16498,
-    title: 'Attack on Titan',
-    original: '進撃の巨人',
-    format: 'Anime',
-    year: 2013,
-    rating: 8.6,
-    episodes: '25 episodes',
-    genres: ['Action', 'Drama', 'Mystery'],
-    description:
-      'Beyond the walls lies a truth no one is ready for. Three friends join humanity’s desperate fight against towering Titans.',
-    image: '/images/titan.jpg',
-    color: '#91694e',
-    features: [0.85, 0.9, 1, 1, 0.05, 0.55],
-  },
-  {
-    id: 44511,
-    anilistId: 127230,
-    malId: 44511,
-    title: 'Chainsaw Man',
-    original: 'チェンソーマン',
-    format: 'Anime',
-    year: 2022,
-    rating: 8.5,
-    episodes: '12 episodes',
-    genres: ['Action', 'Supernatural', 'Drama'],
-    description:
-      'A boy, his chainsaw devil, and a dream of a normal life collide with a wildly unpredictable world of devil hunters.',
-    image: '/images/chainsaw.jpg',
-    color: '#ad7149',
-    features: [0.65, 0.65, 1, 0.65, 0.1, 0.8],
-  },
-  {
-    id: 50265,
-    anilistId: 140960,
-    malId: 50265,
-    title: 'Spy × Family',
-    original: 'SPY×FAMILY',
-    format: 'Anime',
-    year: 2022,
-    rating: 8.5,
-    episodes: '12 episodes',
-    genres: ['Comedy', 'Action', 'Slice of Life'],
-    description:
-      'A spy needs a family for his next mission. His new wife is an assassin. His adopted daughter can read minds. Nobody knows everybody’s secrets.',
-    image: '/images/spy.jpg',
-    color: '#729c8f',
-    features: [0.45, 0.55, 0.5, 0.55, 1, 0.35],
-  },
-  {
-    id: 436,
-    anilistId: 19,
-    malId: 19,
-    title: 'Monster',
-    original: 'MONSTER',
-    format: 'Anime',
-    year: 2004,
-    rating: 8.9,
-    episodes: '74 episodes',
-    genres: ['Mystery', 'Drama', 'Thriller'],
-    description:
-      'A brilliant surgeon saves a young boy’s life, only to face the devastating consequences years later in a gripping psychological mystery.',
-    image: '/images/monster.jpg',
-    color: '#786456',
-    features: [0.6, 0.85, 0.4, 1, 0.05, 0.05],
-  },
-  {
-    id: 34599,
-    anilistId: 97986,
-    malId: 34599,
-    title: 'Made in Abyss',
-    original: 'メイドインアビス',
-    format: 'Anime',
-    year: 2017,
-    rating: 8.6,
-    episodes: '13 episodes',
-    genres: ['Adventure', 'Fantasy', 'Mystery'],
-    description:
-      'An aspiring cave raider and a mysterious robot descend into an enormous chasm filled with wonders, relics, and an unsettling darkness.',
-    image: '/images/abyss.jpg',
-    color: '#7c8958',
-    features: [1, 0.85, 0.5, 1, 0.2, 1],
-  },
-  {
-    id: 33352,
-    anilistId: 21827,
-    malId: 33352,
-    title: 'Violet Evergarden',
-    original: 'ヴァイオレット・エヴァーガーデン',
-    format: 'Anime',
-    year: 2018,
-    rating: 8.7,
-    episodes: '13 episodes',
-    genres: ['Drama', 'Fantasy', 'Slice of Life'],
-    description:
-      'A former soldier becomes a letter writer, learning to name her feelings through the words she writes for others.',
-    image: '/images/violet.jpg',
-    color: '#868b9e',
-    features: [0.4, 1, 0.1, 0.2, 0.75, 0.5],
-  },
-  {
-    id: 21,
-    anilistId: 30013,
-    malId: 13,
-    title: 'One Piece',
-    original: 'ONE PIECE',
-    format: 'Manga',
-    year: 1997,
-    rating: 9.2,
-    episodes: 'Ongoing',
-    genres: ['Adventure', 'Action', 'Fantasy'],
-    description:
-      'Set sail with Luffy and the Straw Hat Pirates in search of the ultimate treasure, found family, and the freedom to chase impossible dreams.',
-    image: '/images/onepiece.jpg',
-    color: '#a77849',
-    features: [1, 0.85, 0.9, 0.7, 0.65, 1],
-  },
-  {
-    id: 2,
-    anilistId: 30002,
-    malId: 2,
-    title: 'Berserk',
-    original: 'ベルセルク',
-    format: 'Manga',
-    year: 1989,
-    rating: 9.5,
-    episodes: 'Ongoing',
-    genres: ['Action', 'Fantasy', 'Drama'],
-    description:
-      'A wandering swordsman struggles against fate in a haunting dark fantasy about ambition, betrayal, and the bonds that keep us human.',
-    image: '/images/berserk.jpg',
-    color: '#71515b',
-    features: [0.8, 1, 1, 0.65, 0, 1],
-  },
-  {
-    id: 56805,
-    anilistId: 153518,
-    malId: 52701,
-    title: 'Delicious in Dungeon',
-    original: 'ダンジョン飯',
-    format: 'Anime',
-    year: 2024,
-    rating: 8.6,
-    episodes: '24 episodes',
-    genres: ['Adventure', 'Comedy', 'Fantasy'],
-    description:
-      'A hungry adventuring party discovers that the best way to survive a dungeon is to cook their way through it. Monsters included.',
-    image: '/images/dungeon.jpg',
-    color: '#8d965e',
-    features: [1, 0.55, 0.55, 0.5, 1, 1],
-  },
-  {
-    id: 121496,
-    anilistId: 105398,
-    malId: 121496,
-    title: 'Solo Leveling',
-    original: '나 혼자만 레벨업',
-    format: 'Manhwa',
-    year: 2018,
-    rating: 8.7,
-    episodes: '201 chapters',
-    genres: ['Action', 'Adventure', 'Fantasy'],
-    description:
-      'Follow Sung Jinwoo’s rise from the weakest hunter to a power that can change the world, in the original full-color Korean webcomic.',
-    image: '/images/solo.jpg',
-    color: '#484884',
-    features: [0.8, 0.5, 1, 0.65, 0.1, 1],
-  },
-  {
-    id: 132214,
-    anilistId: 119257,
-    malId: 132214,
-    title: 'Omniscient Reader',
-    original: '전지적 독자 시점',
-    format: 'Manhwa',
-    year: 2020,
-    rating: 8.8,
-    episodes: 'Ongoing',
-    genres: ['Action', 'Fantasy', 'Mystery'],
-    description:
-      'The novel he has read for years suddenly becomes reality. The only reader who knows the ending must find a new way to survive.',
-    image: '/images/reader.jpg',
-    color: '#656981',
-    features: [0.9, 0.7, 0.85, 1, 0.15, 1],
-  },
-  {
-    id: 119072,
-    anilistId: 112275,
-    malId: 140765,
-    title: 'Heaven Official’s Blessing',
-    original: '天官赐福',
-    format: 'Manhua',
-    year: 2019,
-    rating: 8.8,
-    episodes: 'Ongoing',
-    genres: ['Fantasy', 'Romance', 'Adventure'],
-    description:
-      'An unlucky god descends to the mortal realm and encounters a mysterious companion whose devotion has endured for centuries.',
-    image: '/images/blessing.jpg',
-    color: '#a8727e',
-    features: [0.8, 1, 0.45, 0.7, 0.6, 1],
-  },
-  {
-    id: 42154,
-    anilistId: 113260,
-    malId: 40730,
-    title: 'Heaven Official’s Blessing',
-    original: '天官赐福',
-    format: 'Donghua',
-    year: 2020,
-    rating: 8.3,
-    episodes: '11 episodes',
-    genres: ['Fantasy', 'Romance', 'Adventure'],
-    description:
-      'Eight hundred years after his fall, a gentle crown prince ascends again, crossing paths with the ghost king who never forgot him.',
-    image: '/images/blessing.jpg',
-    color: '#a8727e',
-    features: [0.8, 1, 0.5, 0.6, 0.65, 1],
-  },
-  {
-    id: 37932,
-    anilistId: 101972,
-    malId: 37208,
-    title: 'Mo Dao Zu Shi',
-    original: '魔道祖师',
-    format: 'Donghua',
-    year: 2018,
-    rating: 8.4,
-    episodes: '15 episodes',
-    genres: ['Action', 'Fantasy', 'Mystery'],
-    description:
-      'A once-feared cultivator returns to a world of clans and conspiracies, joining an old acquaintance to unravel a mystery from the past.',
-    image: '/images/modao.jpg',
-    color: '#7e899b',
-    features: [0.9, 0.85, 0.85, 1, 0.25, 1],
-  },
-  {
-    id: 119898,
-    anilistId: 119521,
-    malId: 134744,
-    title: 'The Legend of the Northern Blade',
-    original: '북검전기',
-    format: 'Manhwa',
-    year: 2019,
-    rating: 8.9,
-    episodes: '202 chapters',
-    genres: ['Action', 'Adventure', 'Drama'],
-    description:
-      'The heir of a fallen martial arts sect trains in secret, preparing to confront the forces that destroyed his father’s legacy.',
-    image: '/images/blade.jpg',
-    color: '#657675',
-    features: [0.8, 0.7, 1, 0.6, 0.15, 0.7],
-  },
-];
 export interface RankedTitle {
   item: Title;
   score: number;
   reason: string;
+  evidence?: {
+    confidence: number;
+    similarity: number;
+    bayesian: number;
+    novelty: number;
+    uncertainty: number;
+  };
 }
 export function scoreTitle(features: Taste, taste: Taste, rating: number, novelty: number): number {
   let dot = 0,
@@ -457,14 +160,49 @@ export interface MediaExtras {
   }[];
 }
 export function mediaIdentity(item: Title) {
-  const known = catalog.find(
-    (t) =>
-      t.format === item.format &&
-      t.id === item.id &&
-      (item.anilistId ? t.anilistId === item.anilistId : !item.source && t.title === item.title),
-  );
-  return {
-    anilistId: item.anilistId || known?.anilistId,
-    malId: item.malId || known?.malId || (item.id > 0 ? item.id : undefined),
-  };
+  return { anilistId: item.anilistId, malId: item.malId || (item.id > 0 ? item.id : undefined) };
 }
+export const releaseStatuses = [
+  'ALL',
+  'RELEASING',
+  'FINISHED',
+  'NOT_YET_RELEASED',
+  'HIATUS',
+  'CANCELLED',
+] as const;
+export type ReleaseStatus = Exclude<(typeof releaseStatuses)[number], 'ALL'>;
+export interface CatalogResponse {
+  items: Title[];
+  source: string;
+  notice?: string;
+  fetchedAt?: string;
+}
+export function mergeTitleMetadata(groups: Title[][]) {
+  const map = new Map<string, Title>();
+  for (const group of groups)
+    for (const item of group) {
+      const previous = map.get(titleKey(item));
+      map.set(titleKey(item), { ...previous, ...item });
+    }
+  return [...map.values()];
+}
+
+export interface FeatureTag {
+  name: string;
+  rank: number;
+}
+export interface Feedback {
+  item: Title;
+  rating: number;
+}
+export function titleKey(item: Title) {
+  return `${item.format}:${item.id}`;
+}
+export {
+  vectorizeCatalog,
+  buildVectorProfile,
+  cosineSimilarity,
+  rankByVectors,
+  posteriorStats,
+  VECTOR_SIZE,
+} from './vectors';

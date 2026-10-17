@@ -52,6 +52,65 @@ pub extern "C" fn score(
         novelty,
     )
 }
+
+#[unsafe(no_mangle)]
+pub extern "C" fn posterior_mean(alpha: f64, beta: f64) -> f64 {
+    if !alpha.is_finite() || !beta.is_finite() || alpha <= 0.0 || beta <= 0.0 {
+        return 0.5;
+    }
+    alpha / (alpha + beta)
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn posterior_variance(alpha: f64, beta: f64) -> f64 {
+    if !alpha.is_finite() || !beta.is_finite() || alpha <= 0.0 || beta <= 0.0 {
+        return 0.0625;
+    }
+    let total = alpha + beta;
+    alpha * beta / (total * total * (total + 1.0))
+}
+/// Exact cosine over the browser's hashed feature vectors, bounded to 512 dimensions.
+pub fn cosine_similarity(a: &[f64], b: &[f64]) -> f64 {
+    if a.is_empty()
+        || a.len() != b.len()
+        || a.len() > 512
+        || a.iter().chain(b).any(|v| !v.is_finite())
+    {
+        return 0.0;
+    }
+    let mut dot = 0.0;
+    let mut aa = 0.0;
+    let mut bb = 0.0;
+    for (x, y) in a.iter().zip(b) {
+        dot += x * y;
+        aa += x * x;
+        bb += y * y;
+    }
+    if aa > 0.0 && bb > 0.0 {
+        (dot / (aa * bb).sqrt()).clamp(-1.0, 1.0)
+    } else {
+        0.0
+    }
+}
+// One Web Worker owns an instance. JS fills both halves before each synchronous call.
+static mut VECTOR_BUFFER: [f64; 1024] = [0.0; 1024];
+#[unsafe(no_mangle)]
+pub extern "C" fn vector_buffer() -> *mut f64 {
+    (&raw mut VECTOR_BUFFER).cast::<f64>()
+}
+#[unsafe(no_mangle)]
+pub extern "C" fn vector_cosine(length: u32) -> f64 {
+    if length == 0 || length > 512 {
+        return 0.0;
+    }
+    let pointer = (&raw const VECTOR_BUFFER).cast::<f64>();
+    // The static buffer is valid for 1024 elements; the length guard bounds both slices.
+    unsafe {
+        cosine_similarity(
+            std::slice::from_raw_parts(pointer, length as usize),
+            std::slice::from_raw_parts(pointer.add(512), length as usize),
+        )
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -76,5 +135,24 @@ mod tests {
     #[test]
     fn novelty_penalty_is_applied() {
         assert_eq!(match_score([1.; 6], [1.; 6], 10., 5.), 95.);
+    }
+}
+
+#[cfg(test)]
+mod vector_tests {
+    use super::*;
+    #[test]
+    fn cosine_is_one_for_identical_vectors() {
+        assert!((cosine_similarity(&[1., 2., 3.], &[1., 2., 3.]) - 1.).abs() < 1e-12);
+    }
+    #[test]
+    fn orthogonal_vectors_score_zero() {
+        assert_eq!(cosine_similarity(&[1., 0.], &[0., 1.]), 0.);
+    }
+    #[test]
+    fn invalid_or_mismatched_vectors_are_rejected() {
+        assert_eq!(cosine_similarity(&[f64::NAN], &[1.]), 0.);
+        assert_eq!(cosine_similarity(&[1.], &[1., 2.]), 0.);
+        assert_eq!(vector_cosine(513), 0.);
     }
 }

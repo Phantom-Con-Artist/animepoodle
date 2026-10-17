@@ -1,8 +1,9 @@
+import { catalog } from '../../../tests/fixtures/catalog';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { app } from './app.js';
 import { mergeCatalog } from './catalog-service.js';
-import { catalog, mediaIdentity, type Title } from '@animepoodle/shared';
+import { mediaIdentity, type Title } from '@animepoodle/shared';
 import { normalizeYoutubeLinks } from './anilist.js';
 const aniMedia = (id: number, malId: number, title: string) => ({
   id,
@@ -15,6 +16,11 @@ const aniMedia = (id: number, malId: number, title: string) => ({
   episodes: 12,
   genres: ['Fantasy'],
   description: 'Primary description',
+  tags: [
+    { name: 'Time Travel', rank: 95 },
+    { name: 'Spoiler tag', rank: 90, isMediaSpoiler: true },
+    { name: 'Adult tag', rank: 90, isAdult: true },
+  ],
   bannerImage: 'https://s4.anilist.co/banner.jpg',
   coverImage: { large: 'https://s4.anilist.co/cover.jpg', color: null },
 });
@@ -42,6 +48,7 @@ test('normal searches stay on AniList and preserve API artwork', async () => {
     assert.equal(data.source, 'AniList');
     assert.equal(data.items[0].bannerImage, 'https://s4.anilist.co/banner.jpg');
     assert.equal(data.items[0].malId, 111);
+    assert.deepEqual(data.items[0].tags, [{ name: 'Time Travel', rank: 95 }]);
     assert.equal(calls, 1);
   } finally {
     globalThis.fetch = original;

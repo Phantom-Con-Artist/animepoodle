@@ -49,9 +49,9 @@ The first deployment may prompt you to create a Pages project named `animepoodle
 
 ## What works
 
-- Search the curated collection instantly, or search AniList’s public catalog. Use “Broaden with Jikan” for additional matches; AniList results win deduplication. Search falls back to Jikan when AniList fails or has no matches.
+- Discover live trending titles and search AniList’s public catalog. SWR instantly restores cached queries, then refreshes on demand, focus, or reconnect. Use “Broaden with Jikan” for additional matches; AniList results win deduplication. Search falls back to Jikan when AniList fails or has no matches.
 - Filter anime, manga, Korean manhwa, Chinese manhua, and donghua using media type and country of origin.
-- Sort by rating or year and filter by genre.
+- Query live trending, top-rated, or newest releases. Filter by Airing / ongoing, Aired / completed, TBA / upcoming, hiatus, or cancelled, plus genre.
 - Read synopses and save stories to a library that survives reloads.
 - Click a card’s trailer control to start a muted, looping YouTube background; stop it to restore the cover. Players never mount before that click.
 - Watch trailers in story details and browse public AniList review summaries, authors, scores, and helpfulness counts, three reviews per page. Summaries stay collapsed until revealed; full reviews link to AniList.
@@ -59,17 +59,18 @@ The first deployment may prompt you to create a Pages project named `animepoodle
 - Explore opening and ending songs, artists, native audio streams, and WebM videos from AnimeThemes. Media players mount only after a click.
 - Discover promotional clips and music videos from Jikan, with direct YouTube links, plus API-provided covers, banners, and thumbnails.
 - Tune six taste dimensions, choose a mood, and control recommendation variety.
+- Give private 1–5 ratings to learn liked and disliked themes; revisited discoveries become local recommendation candidates without another fetch.
 - View a match score and an explanation; discover a random pick with “Surprise me.”
 - Use desktop and mobile layouts, keyboard navigation, and native modal dialogs.
 
-The initial collection contains 18 editorial selections with bundled cover art. Ratings and publication metadata in that collection are snapshots, not live rankings. Live search retrieves current metadata primarily from AniList, with optional Jikan search expansion and fallback. Saved live-search titles are added to the candidate set for local recommendations.
+Discovery, featured stories, covers, ratings, and release statuses come from live APIs. The old sample collection exists only as test fixtures. When a refresh fails, the UI labels cached discoveries and keeps them available. Recommendation candidates grow from discoveries on this device.
 
 ## Clean boundaries
 
 ```text
 apps/web/                 Next.js static app + Tailwind + React components
   src/components/         Discovery, cards, story details, taste mixer, modal
-  src/lib/                Web Worker and React recommendation bridge
+  src/lib/                Vector worker, IndexedDB catalog cache, React bridges
   public/wasm/            Committed Rust engine, ready for deployment
 apps/api/src/
   app.ts                  Portable Hono routes, no Node dependency
@@ -80,16 +81,18 @@ apps/api/src/
   provider-client.ts      Bounded caches, coalescing, pacing, rate-limit cooldowns
   index.ts                Local-only Node development adapter
 functions/api/[[route]].ts Cloudflare Pages adapter for the same Hono app
-packages/shared/          Shared models, curated catalog, JS fallback
-crates/recommender/        Rust scoring implementation and unit tests
+packages/shared/          Shared models, metadata vectorization, Bayesian/MMR ranking
+crates/recommender/        Rust scoring, vector cosine, posterior statistics, tests
 scripts/                  WASM build, verification, and parity tests
 ```
 
-The UI calls `/api/search`; Hono queries AniList and normalizes the response. A Web Worker learns a taste vector from **70% explicit preferences + 30% saved-story features**. Rust computes a score using **65% cosine similarity + 25% absolute-distance affinity + 10% catalog rating**. A greedy diversity pass discourages repeated genres according to the variety slider. The JavaScript fallback uses the same formula and is tested against the shipped WASM binary.
+The UI calls `/api/discover` and `/api/search`; Hono retrieves primarily AniList metadata, including ranked tags. A Web Worker creates **512-dimensional weighted metadata vectors**, learns positive/negative profiles from bookmarks and private 1–5 ratings, combines cosine similarity with **Bayesian feature preferences**, and reranks with **novelty, uncertainty and maximal marginal relevance**. Rust/WASM computes cosine similarity and posterior statistics; the JavaScript fallback is tested for parity.
 
-This is a transparent **content-based recommendation baseline**, not a trained deep-learning model or collaborative filtering system. Genre-derived vectors are used for live titles, with hand-curated vectors for the bundled collection. A future engine can add embeddings, ratings, negative feedback, and collaborative signals behind the same worker interface.
+The model uses evidence-dependent weighting to keep early estimates conservative. It is content-based feature vectorization, not a trained neural embedding model. Match percentages indicate affinity, not prediction accuracy.
 
-All taste and library data stays in `localStorage` on the device; it is not synced between browsers. Search terms are sent through the Pages Function to AniList and, on fallback or expansion, Jikan. Opening supplemental media sends media identifiers to AnimeThemes and Jikan. Playing audio/video streams and opening artwork contacts the respective provider directly. There is no sign-in or account-sync flow in this version.
+The browser caches up to **500 discovered titles and 24 query responses in IndexedDB**. Production has no bundled title catalog. SWR shows cached responses immediately and revalidates on mount, focus (throttled to five minutes), reconnect, or **Check updates**. Requests deduplicate for 60 seconds; there is no polling. Successful responses replace changed metadata and automatically rebuild vectors, IDF weights, and taste rankings in the worker. Taste sliders, saved titles and ratings stay in `localStorage`. No hosted vector database or paid embedding service is used, and feedback updates make no network requests. See [the mathematics and free-tier design](docs/recommendations.md).
+
+Catalog requests and media playback still contact their providers. The browser does not sync profiles between devices, and there is no account sign-in in this version.
 
 ## AniList credentials
 
@@ -107,13 +110,15 @@ OAuth credentials are needed only for a future sign-in/account-sync feature. Sto
 
 All three integrations use public read-only endpoints; no API keys or client secrets are required.
 
-| Provider            | Role                                                                                              | Warm-instance cache |
-| ------------------- | ------------------------------------------------------------------------------------------------- | ------------------- |
-| AniList             | Primary catalog, country/type classification, reviews, trailer, banner and YouTube external links | 5 minutes           |
-| AnimeThemes         | OP/ED songs and artists, WebM video, audio streams, cover art                                     | 1 hour              |
-| Jikan / MyAnimeList | Search expansion/fallback, promos, music videos, artwork, fallback theme names                    | 15 minutes          |
+| Provider            | Role                                                                                              | Warm-instance cache                              |
+| ------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| AniList             | Primary catalog, country/type classification, reviews, trailer, banner and YouTube external links | Search/discovery: 60 seconds; details: 5 minutes |
+| AnimeThemes         | OP/ED songs and artists, WebM video, audio streams, cover art                                     | 1 hour                                           |
+| Jikan / MyAnimeList | Search expansion/fallback, promos, music videos, artwork, fallback theme names                    | 15 minutes                                       |
 
-`GET /api/search?q=...&format=Anime` always tries AniList first. Add `broaden=1` to append distinct Jikan matches. Deduplication uses the MAL media ID and media category so anime and manga remain distinct. No Jikan country inference is used: donghua remains on AniList, since Jikan does not provide a reliable country-of-origin filter.
+`GET /api/discover?format=Anime&status=RELEASING&sort=TRENDING_DESC` retrieves current discovery results. Status values are `ALL`, `RELEASING`, `FINISHED`, `NOT_YET_RELEASED`, `HIATUS`, and `CANCELLED`; sorting also accepts `POPULARITY_DESC`, `SCORE_DESC`, and `START_DATE_DESC`. Upstream availability determines freshness; timestamps show when data was fetched.
+
+`GET /api/search?q=...&format=Anime&status=ALL` always tries AniList first. Add `broaden=1` to append distinct Jikan matches. Deduplication uses the MAL media ID and media category so anime and manga remain distinct. No Jikan country inference is used: donghua remains on AniList, since Jikan does not provide a reliable country-of-origin filter.
 
 `GET /api/media/:id?format=Anime&page=1` returns primary details, including canonical `anilistId`, `malId`, `bannerImage`, and `youtubeLinks`. YouTube links come from AniList trailer metadata or enabled `externalLinks`; no YouTube API key or fabricated search links are used.
 

@@ -6,13 +6,23 @@ import {
   type MediaLink,
 } from '@animepoodle/shared';
 import { httpsUrl, youtubeUrl } from './urls.js';
-const query = `query Discover($search:String!,$type:MediaType,$country:CountryCode){Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,isAdult:false,sort:SEARCH_MATCH){id idMal title{english romaji native}type countryOfOrigin startDate{year}averageScore episodes chapters status genres description(asHtml:false)bannerImage coverImage{large color}}}}`;
+const mediaFields = `id idMal title{english romaji native} type format status countryOfOrigin tags{name rank isAdult isGeneralSpoiler isMediaSpoiler} startDate{year} averageScore episodes chapters genres description(asHtml:false) bannerImage coverImage{large color}`;
+const query = `query Search($search:String!,$type:MediaType,$country:CountryCode,$status:MediaStatus){Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,status:$status,isAdult:false,sort:SEARCH_MATCH){${mediaFields}}}}`;
+const discoveryQuery = `query Discover($type:MediaType,$country:CountryCode,$status:MediaStatus,$sort:[MediaSort]){Page(page:1,perPage:30){media(type:$type,countryOfOrigin:$country,status:$status,isAdult:false,sort:$sort){${mediaFields}}}}`;
 interface AniMedia {
   id: number;
   idMal: number | null;
   title: { english: string | null; romaji: string; native: string | null };
   type: 'ANIME' | 'MANGA';
   countryOfOrigin: string;
+  format?: string;
+  tags?: {
+    name: string;
+    rank: number | null;
+    isAdult?: boolean;
+    isGeneralSpoiler?: boolean;
+    isMediaSpoiler?: boolean;
+  }[];
   startDate: { year: number | null };
   averageScore: number | null;
   episodes: number | null;
@@ -48,6 +58,22 @@ export function normalizeMedia(d: AniMedia): Title {
     anilistId: d.id,
     malId: d.idMal || undefined,
     source: 'AniList',
+    mediaFormat: d.format,
+    origin: d.countryOfOrigin,
+    status: d.status as Title['status'],
+    tags: (d.tags || [])
+      .filter(
+        (tag) =>
+          !tag.isAdult &&
+          !tag.isGeneralSpoiler &&
+          !tag.isMediaSpoiler &&
+          typeof tag.name === 'string' &&
+          typeof tag.rank === 'number' &&
+          tag.rank > 0,
+      )
+      .sort((a, b) => (b.rank || 0) - (a.rank || 0))
+      .slice(0, 32)
+      .map((tag) => ({ name: tag.name.slice(0, 100), rank: Math.min(100, tag.rank || 0) })),
     bannerImage: httpsUrl(d.bannerImage),
     title: d.title.english || d.title.romaji,
     original: d.title.native || d.title.romaji,
@@ -88,10 +114,14 @@ export function normalizeMedia(d: AniMedia): Title {
 const cache = new Map<string, { at: number; items: Title[] }>();
 const pending = new Map<string, Promise<Title[]>>();
 let cooldownUntil = 0;
-export async function searchAniList(search: string, format: string): Promise<Title[]> {
-  const key = `${format}:${search.toLowerCase()}`;
+export async function searchAniList(
+  search: string,
+  format: string,
+  status = 'ALL',
+): Promise<Title[]> {
+  const key = `${format}:${status}:${search.toLowerCase()}`;
   const cached = cache.get(key);
-  if (cached && Date.now() - cached.at < 300000) return cached.items;
+  if (cached && Date.now() - cached.at < 60000) return cached.items;
   if (cooldownUntil > Date.now())
     throw new CatalogError(
       'AniList is taking a short breather. Please try again in a minute.',
@@ -115,7 +145,12 @@ export async function searchAniList(search: string, format: string): Promise<Tit
           : format === 'Manga'
             ? 'JP'
             : undefined;
-    const data = await requestAniList(query, { search, type, country });
+    const data = await requestAniList(query, {
+      search,
+      type,
+      country,
+      status: status === 'ALL' ? undefined : status,
+    });
     if (data.errors || !Array.isArray(data.data?.Page?.media))
       throw new CatalogError(
         'The catalog could not complete this search. Please try another title.',
@@ -151,7 +186,7 @@ async function requestAniList(document: string, variables: Record<string, unknow
     });
   } catch {
     throw new CatalogError(
-      'Live search is unavailable right now. Your curated discoveries are still here.',
+      'Live search is unavailable right now. Your cached discoveries are still here.',
     );
   }
   if (res.status === 429) {
@@ -286,4 +321,60 @@ export function normalizeYoutubeLinks(
     if (url) result.push({ label: link.site || 'YouTube', url, source: 'AniList' });
   }
   return Array.from(new Map(result.map((link) => [link.url, link])).values());
+}
+
+const discoveryCache = new Map<
+  string,
+  { at: number; data: { items: Title[]; source: string; fetchedAt: string } }
+>(); // 60-second freshness window
+const discoveryPending = new Map<
+  string,
+  Promise<{ items: Title[]; source: string; fetchedAt: string }>
+>();
+export async function discoverAniList(format: string, status: string, sort: string) {
+  const key = `${format}:${status}:${sort}`;
+  const hit = discoveryCache.get(key);
+  if (hit && Date.now() - hit.at < 60000) return hit.data;
+  const active = discoveryPending.get(key);
+  if (active) return active;
+  const work = (async () => {
+    const type =
+      format === 'All'
+        ? undefined
+        : ['Manga', 'Manhwa', 'Manhua'].includes(format)
+          ? 'MANGA'
+          : 'ANIME';
+    const country =
+      format === 'Manhwa'
+        ? 'KR'
+        : ['Manhua', 'Donghua'].includes(format)
+          ? 'CN'
+          : format === 'Manga'
+            ? 'JP'
+            : undefined;
+    const data = await requestAniList(discoveryQuery, {
+      type,
+      country,
+      status: status === 'ALL' ? undefined : status,
+      sort: [sort, 'POPULARITY_DESC'],
+    });
+    if (data.errors || !Array.isArray(data.data?.Page?.media))
+      throw new CatalogError(
+        'The live catalog is unavailable right now. Please try again shortly.',
+      );
+    const result = {
+      items: data.data.Page.media.map(normalizeMedia) as Title[],
+      source: 'AniList',
+      fetchedAt: new Date().toISOString(),
+    };
+    if (discoveryCache.size >= 100) discoveryCache.delete(discoveryCache.keys().next().value!);
+    discoveryCache.set(key, { at: Date.now(), data: result });
+    return result;
+  })();
+  discoveryPending.set(key, work);
+  try {
+    return await work;
+  } finally {
+    discoveryPending.delete(key);
+  }
 }

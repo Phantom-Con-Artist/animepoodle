@@ -9,6 +9,9 @@ interface Props {
   variety: number;
   setVariety: (v: number) => void;
   engine: string;
+  candidateCount: number;
+  ratingCount: number;
+  onClearRatings: () => void;
   onClose: () => void;
   onShowStories: () => void;
   onTasteChange: () => void;
@@ -19,6 +22,9 @@ export default function TasteMixer({
   variety,
   setVariety,
   engine,
+  candidateCount,
+  ratingCount,
+  onClearRatings,
   onClose,
   onShowStories,
   onTasteChange,
@@ -73,11 +79,17 @@ export default function TasteMixer({
         <div>
           <strong>{engine}</strong>
           <p>
-            Six taste dimensions + saved stories + a dash of variety. Match scores measure affinity,
-            not a prediction of your rating. Your taste profile stays in this browser.
+            Your ratings, saved stories, and moods shape these picks. {candidateCount} available
+            stories · {ratingCount} private ratings. More feedback improves the estimate. Calculated
+            on your device; match scores are not predicted ratings.
           </p>
         </div>
       </div>
+      {ratingCount > 0 && (
+        <button className="text-button" onClick={onClearRatings}>
+          Forget my ratings
+        </button>
+      )}
       <div className="mixer-actions">
         <button
           className="text-button"

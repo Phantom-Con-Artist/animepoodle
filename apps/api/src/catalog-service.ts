@@ -1,6 +1,6 @@
 import { type Title, type MediaExtras } from '@animepoodle/shared';
-import { searchAniList } from './anilist.js';
-import { searchJikan, getJikanExtras } from './jikan.js';
+import { searchAniList, discoverAniList } from './anilist.js';
+import { searchJikan, getJikanExtras, discoverJikan } from './jikan.js';
 import { getAnimeThemes } from './animethemes.js';
 export function mergeCatalog(primary: Title[], secondary: Title[]): Title[] {
   const merged = new Map<string, Title>();
@@ -11,11 +11,11 @@ export function mergeCatalog(primary: Title[], secondary: Title[]): Title[] {
   }
   return [...merged.values()];
 }
-export async function searchCatalog(q: string, format: string, broaden = false) {
+export async function searchCatalog(q: string, format: string, broaden = false, status = 'ALL') {
   let primary: Title[] = [];
   let primaryError: unknown;
   try {
-    primary = await searchAniList(q, format);
+    primary = await searchAniList(q, format, status);
   } catch (error) {
     primaryError = error;
   }
@@ -34,7 +34,7 @@ export async function searchCatalog(q: string, format: string, broaden = false) 
     };
   }
   try {
-    const secondary = await searchJikan(q, format);
+    const secondary = await searchJikan(q, format, status);
     const items = mergeCatalog(primary, secondary);
     if (primaryError && !secondary.length) throw primaryError;
     return {
@@ -101,4 +101,24 @@ export async function getSupplementalMedia(
       },
     ],
   };
+}
+
+export async function discoverCatalog(format: string, status: string, sort: string) {
+  try {
+    return await discoverAniList(format, status, sort);
+  } catch (error) {
+    if (format === 'Donghua') throw error;
+    try {
+      const items = await discoverJikan(format, status, sort);
+      if (!items.length) throw error;
+      return {
+        items,
+        source: 'Jikan',
+        fetchedAt: new Date().toISOString(),
+        notice: 'AniList is temporarily unavailable. Showing Jikan discoveries.',
+      };
+    } catch {
+      throw error;
+    }
+  }
 }

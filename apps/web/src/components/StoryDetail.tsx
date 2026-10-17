@@ -9,12 +9,16 @@ export default function StoryDetail({
   saved,
   onSave,
   onClose,
+  rating,
+  onRate,
 }: {
   selected: Title;
   match?: RankedTitle;
   saved: boolean;
   onSave: () => void;
   onClose: () => void;
+  rating: number;
+  onRate: (rating: number) => void;
 }) {
   return (
     <Modal title={selected.title} onClose={onClose} wide>
@@ -53,7 +57,15 @@ export default function StoryDetail({
               <Sparkles size={19} />
               <span>
                 <strong>{Math.round(match!.score)}% taste match</strong>
-                <small>{match!.reason}. Scored from your six-dimensional taste profile.</small>
+                <small>{match!.reason}. Based on your mood and local metadata vectors.</small>
+                {match.evidence && (
+                  <small>
+                    Profile evidence: {Math.round(match.evidence.confidence * 100)}% · Theme
+                    affinity: {Math.round(match.evidence.similarity * 100)}% · Novelty:{' '}
+                    {Math.round(match.evidence.novelty * 100)}%. Evidence reflects how much feedback
+                    the model has, not prediction accuracy.
+                  </small>
+                )}
               </span>
             </div>
           )}
@@ -61,6 +73,22 @@ export default function StoryDetail({
             {saved ? <Check size={17} /> : <Bookmark size={17} />}{' '}
             {saved ? 'Saved to my library' : 'Save to my library'}
           </button>
+          <label className="personal-rating">
+            How did this story feel?
+            <select
+              aria-label="My rating"
+              value={rating}
+              onChange={(e) => onRate(Number(e.target.value))}
+            >
+              <option value="0">Not rated yet</option>
+              <option value="1">1 ★ · Not for me</option>
+              <option value="2">2 ★ · Not my favorite</option>
+              <option value="3">3 ★ · It was okay</option>
+              <option value="4">4 ★ · Really liked it</option>
+              <option value="5">5 ★ · Loved it</option>
+            </select>
+            <small>Private feedback for your on-device recommendations.</small>
+          </label>
           <p className="detail-note">
             A discovery space. Find official availability in your region.
           </p>

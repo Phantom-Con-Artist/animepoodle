@@ -1,7 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { type Title, type Taste, type RankedTitle } from '@animepoodle/shared';
-export function useRecommendations(items: Title[], taste: Taste, saved: string[], variety: number) {
+import { type Title, type Taste, type RankedTitle, type Feedback } from '@animepoodle/shared';
+export function useRecommendations(
+  items: Title[],
+  taste: Taste,
+  saved: string[],
+  variety: number,
+  feedback: Feedback[],
+) {
   const [ranked, setRanked] = useState<RankedTitle[]>([]);
   const [engine, setEngine] = useState('Loading engine…');
   const worker = useRef<Worker | null>(null);
@@ -21,7 +27,7 @@ export function useRecommendations(items: Title[], taste: Taste, saved: string[]
     };
   }, []);
   useEffect(() => {
-    worker.current?.postMessage({ id: ++request.current, items, taste, saved, variety });
-  }, [items, taste, saved, variety]);
+    worker.current?.postMessage({ id: ++request.current, items, taste, saved, variety, feedback });
+  }, [items, taste, saved, variety, feedback]);
   return { ranked, engine };
 }

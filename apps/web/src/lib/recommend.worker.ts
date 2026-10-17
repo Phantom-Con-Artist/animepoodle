@@ -1,19 +1,41 @@
 import {
   scoreTitle,
-  reasonFor,
+  rankByVectors,
   type Title,
   type Taste,
-  type RankedTitle,
+  type Feedback,
 } from '@animepoodle/shared';
 type Scorer = (...args: number[]) => number;
-let wasm: Promise<Scorer | null> | undefined;
+interface Engine {
+  score: Scorer;
+  cosine: (a: Float64Array, b: Float64Array) => number;
+  posterior: (alpha: number, beta: number) => { mean: number; variance: number };
+}
+let wasm: Promise<Engine | null> | undefined;
 function loadEngine() {
   return (wasm ??= (async () => {
     try {
       const res = await fetch('/wasm/recommender.wasm');
       if (!res.ok) return null;
       const { instance } = await WebAssembly.instantiate(await res.arrayBuffer());
-      return instance.exports.score as Scorer;
+      const score = instance.exports.score as Scorer;
+      const buffer = instance.exports.vector_buffer as () => number;
+      const cosine = instance.exports.vector_cosine as (length: number) => number;
+      const memory = instance.exports.memory as WebAssembly.Memory;
+      const mean = instance.exports.posterior_mean as (a: number, b: number) => number;
+      const variance = instance.exports.posterior_variance as (a: number, b: number) => number;
+      if (!score || !buffer || !cosine || !memory || !mean || !variance) return null;
+      const pointer = buffer();
+      return {
+        score,
+        posterior: (a: number, b: number) => ({ mean: mean(a, b), variance: variance(a, b) }),
+        cosine: (a: Float64Array, b: Float64Array) => {
+          const view = new Float64Array(memory.buffer, pointer, 1024);
+          view.set(a, 0);
+          view.set(b, 512);
+          return cosine(a.length);
+        },
+      };
     } catch {
       return null;
     }
@@ -25,45 +47,27 @@ self.onmessage = async (
     items: Title[];
     taste: Taste;
     saved: string[];
+    feedback: Feedback[];
     variety: number;
   }>,
 ) => {
-  const { id, items, taste, saved, variety } = event.data;
+  const { id, items, taste, saved, feedback = [], variety } = event.data;
   const engine = await loadEngine();
-  const favorites = items.filter((i) => saved.includes(`${i.format}:${i.id}`));
-  const learned = taste.map((v, index) =>
-    favorites.length
-      ? v * 0.7 + (favorites.reduce((a, i) => a + i.features[index], 0) / favorites.length) * 0.3
-      : v,
-  ) as Taste;
-  const ranked: RankedTitle[] = items
-    .filter((i) => !saved.includes(`${i.format}:${i.id}`))
-    .map((item) => ({
-      item,
-      score: engine
-        ? engine(...item.features, ...learned, item.rating, 0)
-        : scoreTitle(item.features, learned, item.rating, 0),
-      reason: reasonFor(item, learned),
-    }));
-  // Keep the shelf varied across genres and adaptations of the same story.
-  const result: RankedTitle[] = [];
-  const used = new Map<string, number>();
-  const selectedNames = new Set<string>();
-  const adjustedScore = (entry: RankedTitle) => {
-    const genrePenalty = entry.item.genres.reduce((sum, genre) => sum + (used.get(genre) || 0), 0);
-    const adaptationPenalty = selectedNames.has(entry.item.title.toLowerCase()) ? 10 : 0;
-    return entry.score - (genrePenalty + adaptationPenalty) * variety;
-  };
-  while (ranked.length) {
-    ranked.sort((a, b) => adjustedScore(b) - adjustedScore(a));
-    const next = ranked.shift()!;
-    result.push(next);
-    selectedNames.add(next.item.title.toLowerCase());
-    next.item.genres.forEach((genre) => used.set(genre, (used.get(genre) || 0) + 1));
-  }
+  const ranked = rankByVectors({
+    items,
+    taste,
+    saved,
+    feedback,
+    variety,
+    scoreTaste: (item, profile) =>
+      engine
+        ? engine.score(...item.features, ...profile, item.rating, 0)
+        : scoreTitle(item.features, profile, item.rating, 0),
+    ...(engine ? { cosine: engine.cosine, posterior: engine.posterior } : {}),
+  });
   self.postMessage({
     id,
-    items: result,
+    items: ranked,
     engine: engine ? 'Rust / WebAssembly' : 'JavaScript fallback',
   });
 };

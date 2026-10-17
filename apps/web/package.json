@@ -7,16 +7,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@animepoodle/shared": "*",
+    "lucide-react": "^0.468.0",
     "next": "^16.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "lucide-react": "^0.468.0",
-    "@animepoodle/shared": "*"
+    "swr": "^2.5.1"
   },
   "devDependencies": {
-    "tailwindcss": "^4.1.0",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0"
+    "@types/react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.0"
   }
 }

@@ -12,7 +12,7 @@
     "build:web": "npm run build -w @animepoodle/web",
     "build:wasm": "node scripts/build-wasm.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "tsx --test apps/api/src/*.test.ts scripts/wasm.test.ts && cargo test --manifest-path crates/recommender/Cargo.toml",
+    "test": "tsx --test apps/api/src/*.test.ts scripts/*.test.ts && cargo test --manifest-path crates/recommender/Cargo.toml",
     "build:functions": "wrangler pages functions build functions --outdir .wrangler/pages-worker && node scripts/package-worker.mjs",
     "preview": "wrangler pages dev apps/web/out --port 4173",
     "deploy": "wrangler pages deploy apps/web/out --project-name animepoodle",

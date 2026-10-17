@@ -1,38 +1,55 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { catalog, formats } from '@animepoodle/shared';
+import { formats, releaseStatuses } from '@animepoodle/shared';
 import { getMediaDetails, CatalogError } from './anilist.js';
-import { searchCatalog, getSupplementalMedia } from './catalog-service.js';
+import { searchCatalog, getSupplementalMedia, discoverCatalog } from './catalog-service.js';
 export const app = new Hono();
 app.use('/api/*', cors({ origin: 'http://localhost:3000' }));
 app.get('/api/health', (c) => c.json({ ok: true, service: 'animepoodle-api' }));
-app.get('/api/catalog', (c) => {
-  const q = (c.req.query('q') || '').toLowerCase().slice(0, 100);
-  const format = c.req.query('format');
-  return c.json({
-    items: catalog.filter(
-      (item) =>
-        (!format || format === 'All' || item.format === format) &&
-        `${item.title} ${item.original} ${item.genres.join(' ')}`.toLowerCase().includes(q),
-    ),
-    source: 'curated',
-  });
+app.get('/api/catalog', (c) =>
+  c.redirect(
+    `/api/${c.req.query('q') ? 'search' : 'discover'}?${new URL(c.req.url).searchParams}`,
+    307,
+  ),
+);
+app.get('/api/discover', async (c) => {
+  const format = c.req.query('format') || 'All';
+  const status = c.req.query('status') || 'ALL';
+  const sort = c.req.query('sort') || 'TRENDING_DESC';
+  if (
+    !formats.includes(format as (typeof formats)[number]) ||
+    !releaseStatuses.includes(status as (typeof releaseStatuses)[number]) ||
+    !['TRENDING_DESC', 'POPULARITY_DESC', 'SCORE_DESC', 'START_DATE_DESC'].includes(sort)
+  )
+    return c.json({ error: 'Invalid discovery filters.' }, 400);
+  try {
+    return c.json(await discoverCatalog(format, status, sort));
+  } catch (error) {
+    if (error instanceof CatalogError) {
+      if (error.status === 429) c.header('Retry-After', String(error.retryAfter));
+      return c.json({ error: error.message }, error.status);
+    }
+    return c.json({ error: 'The live catalog is unavailable right now.' }, 503);
+  }
 });
 app.get('/api/search', async (c) => {
   const q = (c.req.query('q') || '').trim().slice(0, 100);
   const format = c.req.query('format') || 'All';
+  const status = c.req.query('status') || 'ALL';
+  if (!releaseStatuses.includes(status as (typeof releaseStatuses)[number]))
+    return c.json({ error: 'Unknown release status.' }, 400);
   if (q.length < 2) return c.json({ error: 'Enter at least two characters.' }, 400);
   if (!formats.includes(format as (typeof formats)[number]))
     return c.json({ error: 'Unknown format.' }, 400);
   try {
-    return c.json(await searchCatalog(q, format, c.req.query('broaden') === '1'));
+    return c.json(await searchCatalog(q, format, c.req.query('broaden') === '1', status));
   } catch (error) {
     if (error instanceof CatalogError) {
       if (error.status === 429) c.header('Retry-After', String(error.retryAfter));
       return c.json({ error: error.message }, error.status);
     }
     return c.json(
-      { error: 'Live search is unavailable right now. Your curated discoveries are still here.' },
+      { error: 'Live search is unavailable right now. Your cached discoveries are still here.' },
       503,
     );
   }

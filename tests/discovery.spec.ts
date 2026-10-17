@@ -1,4 +1,28 @@
 import { test, expect } from '@playwright/test';
+import { catalog } from './fixtures/catalog';
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/discover?*', (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    const items = catalog
+      .map((item) => ({
+        ...item,
+        status: item.status || 'FINISHED',
+        bannerImage: item.bannerImage || '/images/hero.jpg',
+      }))
+      .filter(
+        (item) =>
+          (!params.get('format') ||
+            params.get('format') === 'All' ||
+            item.format === params.get('format')) &&
+          (!params.get('status') ||
+            params.get('status') === 'ALL' ||
+            item.status === params.get('status')),
+      );
+    return route.fulfill({
+      json: { items, source: 'AniList', fetchedAt: new Date().toISOString() },
+    });
+  });
+});
 test('discovery, format filters, and saved library survive a reload', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Find your next obsession.' })).toBeVisible();
@@ -107,8 +131,8 @@ test('Pages Function serves Hono routes on the deployed origin', async ({ reques
   const health = await request.get('/api/health');
   expect(health.ok()).toBe(true);
   expect((await health.json()).service).toBe('animepoodle-api');
-  const filtered = await request.get('/api/catalog?q=solo&format=Manhwa');
-  expect((await filtered.json()).items).toHaveLength(1);
+  const filtered = await request.get('/api/discover?status=invalid');
+  expect(filtered.status()).toBe(400);
   const invalid = await request.get('/api/search?q=x');
   expect(invalid.status()).toBe(400);
 });
@@ -371,4 +395,218 @@ test('broader search is opt-in and keeps AniList titles first', async ({ page })
   await page.getByRole('button', { name: 'Broaden with Jikan' }).click();
   await expect(page.locator('.title-card')).toHaveCount(2);
   await expect(page.locator('.card-title').first()).toHaveText('Primary story');
+});
+
+test('private ratings persist and update recommendations without API requests', async ({
+  page,
+}) => {
+  let apiCalls = 0;
+  await page.route('**/api/**', (route) => {
+    if (new URL(route.request().url()).pathname === '/api/discover') return route.fallback();
+    apiCalls++;
+    return route.fulfill({
+      json: {
+        anilistId: 154587,
+        url: 'https://anilist.co/anime/154587',
+        trailer: null,
+        reviews: [],
+        pageInfo: { currentPage: 1, hasNextPage: false },
+      },
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Meet your next favorite' }).click();
+  await expect(page.getByRole('heading', { name: 'Soundtrack & extras' })).toBeVisible();
+  const before = apiCalls;
+  await page.getByRole('combobox', { name: 'My rating' }).selectOption('5');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => JSON.parse(localStorage.getItem('animepoodle-profile') || '{}').feedback?.[0]?.rating,
+      ),
+    )
+    .toBe(5);
+  expect(apiCalls).toBe(before);
+  await page.reload();
+  await page.getByRole('button', { name: 'Meet your next favorite' }).click();
+  await expect(page.getByRole('combobox', { name: 'My rating' })).toHaveValue('5');
+  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible())
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page
+    .getByRole('navigation')
+    .getByRole('button', { name: /For you/ })
+    .click();
+  await expect(page.getByRole('heading', { name: 'A shelf with your name on it' })).toBeVisible();
+  await expect(
+    page.locator('.title-card .card-title').filter({ hasText: 'Frieren: Beyond Journey’s End' }),
+  ).toHaveCount(0);
+});
+test('discovered metadata is reused from IndexedDB after reload without another search', async ({
+  page,
+}) => {
+  let searchCalls = 0;
+  await page.route('**/api/search?*', (route) => {
+    searchCalls++;
+    return route.fulfill({
+      json: {
+        items: [
+          {
+            id: 991111,
+            anilistId: 991112,
+            malId: 991111,
+            title: 'Remembered discovery',
+            original: 'Remembered',
+            format: 'Anime',
+            year: 2024,
+            rating: 8,
+            episodes: '12 episodes',
+            genres: ['Fantasy'],
+            tags: [{ name: 'Time Travel', rank: 95 }],
+            description: 'A discovery to keep on this device.',
+            image: '/images/frieren.jpg',
+            color: '#567456',
+            features: [1, 0.5, 0.4, 0.4, 0.6, 1],
+          },
+        ],
+        source: 'AniList',
+      },
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'Search stories' }).fill('remembered');
+  await page.getByRole('button', { name: 'Search all stories' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Remembered discovery', exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean>((resolve, reject) => {
+            const request = indexedDB.open('animepoodle-local-catalog');
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+              const db = request.result;
+              const tx = db.transaction('titles', 'readonly');
+              const read = tx.objectStore('titles').get('Anime:991111');
+              read.onsuccess = () => {
+                resolve(!!read.result);
+                db.close();
+              };
+              read.onerror = () => reject(read.error);
+            };
+          }),
+      ),
+    )
+    .toBe(true);
+  await page.reload();
+  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible())
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page
+    .getByRole('navigation')
+    .getByRole('button', { name: /For you/ })
+    .click();
+  await expect(
+    page.getByRole('button', { name: 'Remembered discovery', exact: true }),
+  ).toBeVisible();
+  expect(searchCalls).toBe(1);
+});
+
+test('release filters fetch live upcoming titles instead of a bundled catalog', async ({
+  page,
+}) => {
+  const statuses: string[] = [];
+  await page.route('**/api/discover?*', async (route) => {
+    const status = new URL(route.request().url()).searchParams.get('status')!;
+    statuses.push(status);
+    return route.fulfill({
+      json: {
+        items: [
+          {
+            ...catalog[0],
+            id: 987651,
+            anilistId: 987652,
+            title: 'Live future discovery',
+            year: 0,
+            rating: 0,
+            status: status === 'ALL' ? 'RELEASING' : status,
+            tags: [{ name: 'Space Opera', rank: 98 }],
+            source: 'AniList',
+          },
+        ],
+        source: 'AniList',
+        fetchedAt: new Date().toISOString(),
+      },
+    });
+  });
+  await page.goto('/');
+  await expect(page.locator('.title-card .card-title')).toHaveText('Live future discovery');
+  await expect(page.locator('.title-card')).toHaveCount(1);
+  await page.getByRole('combobox', { name: 'Release status' }).selectOption('NOT_YET_RELEASED');
+  await expect(page.locator('.title-card .release-badge')).toHaveText('TBA / upcoming');
+  await expect(page.locator('.title-card .card-meta')).toContainText('TBA');
+  expect(statuses).toContain('NOT_YET_RELEASED');
+});
+
+test('SWR restores cached discovery while refreshing and keeps it on API failure', async ({
+  page,
+}) => {
+  let mode: 'initial' | 'delayed' | 'failure' = 'initial';
+  let release: (() => void) | undefined;
+  let refreshes = 0;
+  await page.route('**/api/discover?*', async (route) => {
+    refreshes++;
+    if (mode === 'delayed')
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    if (mode === 'failure')
+      return route.fulfill({ status: 503, json: { error: 'Provider offline' } });
+    return route.fulfill({
+      json: {
+        items: [
+          {
+            ...catalog[0],
+            title: mode === 'initial' ? 'Cached live story' : 'Updated live story',
+            status: 'FINISHED',
+          },
+        ],
+        source: 'AniList',
+        fetchedAt: new Date().toISOString(),
+      },
+    });
+  });
+  await page.goto('/');
+  await expect(page.locator('.title-card .card-title')).toHaveText('Cached live story');
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<number>((resolve, reject) => {
+            const req = indexedDB.open('animepoodle-local-catalog');
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => {
+              const db = req.result;
+              const read = db.transaction('requests').objectStore('requests').count();
+              read.onsuccess = () => {
+                resolve(read.result);
+                db.close();
+              };
+            };
+          }),
+      ),
+    )
+    .toBe(1);
+  mode = 'delayed';
+  await page.reload();
+  await expect(page.locator('.title-card .card-title')).toHaveText('Cached live story');
+  await expect.poll(() => !!release).toBe(true);
+  release!();
+  await expect(page.locator('.title-card .card-title')).toHaveText('Updated live story');
+  mode = 'failure';
+  await page.getByRole('button', { name: 'Check updates' }).click();
+  await expect(page.getByText('Could not refresh. Showing cached discoveries.')).toBeVisible();
+  await expect(page.locator('.title-card .card-title')).toHaveText('Updated live story');
+  expect(refreshes).toBe(3);
 });

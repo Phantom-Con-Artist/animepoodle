@@ -27,8 +27,19 @@ import {
   Leaf,
   Info,
 } from 'lucide-react';
-import { catalog, defaultTaste, formats, moods, type Title, type Taste } from '@animepoodle/shared';
+import {
+  defaultTaste,
+  formats,
+  moods,
+  type Title,
+  type Taste,
+  type Feedback,
+  mergeTitleMetadata,
+} from '@animepoodle/shared';
 import { useRecommendations } from '@/lib/useRecommendations';
+import { useLocalCatalog } from '@/lib/useLocalCatalog';
+import { validTitle } from '@/lib/local-catalog';
+import { useCatalogSWR } from '@/lib/useCatalogSWR';
 import Poodle from './Poodle';
 import StoryDetail from './StoryDetail';
 import TasteMixer from './TasteMixer';
@@ -53,8 +64,10 @@ export default function Discovery() {
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('All genres');
   const [sort, setSort] = useState('Popular');
+  const [releaseStatus, setReleaseStatus] = useState('ALL');
   const [filters, setFilters] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [saved, setSaved] = useState<string[]>([]);
   const [savedTitles, setSavedTitles] = useState<Title[]>([]);
   const [taste, setTaste] = useState<Taste>(defaultTaste);
@@ -65,17 +78,42 @@ export default function Discovery() {
   const [mixer, setMixer] = useState(false);
   const [mood, setMood] = useState('');
   const [toast, setToast] = useState('');
-  const [live, setLive] = useState<Title[] | null>(null);
-  const [liveStatus, setLiveStatus] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [source, setSource] = useState('');
+  const [searchRequest, setSearchRequest] = useState<string | null>(null);
+  const [validationMessage, setValidationMessage] = useState('');
+  const sortKey =
+    sort === 'Top rated' ? 'SCORE_DESC' : sort === 'Newest' ? 'START_DATE_DESC' : 'TRENDING_DESC';
+  const discoveryState = useCatalogSWR(
+    `/api/discover?format=${format}&status=${releaseStatus}&sort=${sortKey}`,
+  );
+  const searchState = useCatalogSWR(searchRequest);
+  const live = searchRequest ? searchState.data?.items || null : null;
+  const loading = !!searchRequest && searchState.isValidating;
+  const activeCatalog = searchRequest ? searchState : discoveryState;
+  const source = searchRequest ? searchState.data?.source || '' : discoveryState.data?.source || '';
+  const liveStatus =
+    validationMessage ||
+    (searchRequest ? searchState.error?.message || searchState.data?.notice || '' : '');
+  const discoveries = discoveryState.data?.items;
+  const latest = useMemo(() => [...(discoveries || []), ...(live || [])], [discoveries, live]);
   const search = useRef<HTMLInputElement>(null);
   const section = useRef<HTMLElement>(null);
-  const request = useRef<AbortController | null>(null);
   useEffect(() => {
     try {
       const raw = JSON.parse(localStorage.getItem('animepoodle-profile') || 'null');
       if (raw) {
+        if (Array.isArray(raw.feedback))
+          setFeedback(
+            raw.feedback
+              .filter(
+                (entry: Feedback) =>
+                  entry &&
+                  validTitle(entry.item) &&
+                  Number.isInteger(entry.rating) &&
+                  entry.rating >= 1 &&
+                  entry.rating <= 5,
+              )
+              .slice(-500),
+          );
         if (Array.isArray(raw.saved))
           setSaved(raw.saved.filter((x: unknown) => typeof x === 'string'));
         if (Array.isArray(raw.savedTitles))
@@ -108,12 +146,12 @@ export default function Discovery() {
       try {
         localStorage.setItem(
           'animepoodle-profile',
-          JSON.stringify({ saved, savedTitles, taste, variety }),
+          JSON.stringify({ saved, savedTitles, taste, variety, feedback }),
         );
       } catch {
         setStorageError(true);
       }
-  }, [ready, saved, savedTitles, taste, variety]);
+  }, [ready, saved, savedTitles, taste, variety, feedback]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
@@ -130,30 +168,42 @@ export default function Discovery() {
     return () => clearTimeout(timer);
   }, [toast]);
   useEffect(() => {
-    request.current?.abort();
-    setLive(null);
-    setLiveStatus('');
-    setSource('');
-    setLoading(false);
-  }, [query, format]);
-  useEffect(() => () => request.current?.abort(), []);
+    setSearchRequest(null);
+    setValidationMessage('');
+  }, [query, format, releaseStatus]);
+  const localCatalog = useLocalCatalog(latest);
   const allItems = useMemo(
     () =>
-      Array.from(
-        new Map([...catalog, ...savedTitles, ...(live || [])].map((t) => [keyOf(t), t])).values(),
-      ),
-    [savedTitles, live],
+      mergeTitleMetadata([
+        feedback.map((entry) => entry.item),
+        savedTitles,
+        localCatalog,
+        discoveries || [],
+        live || [],
+      ]),
+    [savedTitles, live, localCatalog, feedback, discoveries],
   );
-  const { ranked, engine } = useRecommendations(allItems, taste, saved, variety);
+  const discoveryItems =
+    discoveries ||
+    localCatalog.filter(
+      (item) =>
+        (format === 'All' || item.format === format) &&
+        (releaseStatus === 'ALL' || item.status === releaseStatus),
+    );
+  const spotlight = discoveryItems.find((item) => !!item.bannerImage) || discoveryItems[0];
+  const { ranked, engine } = useRecommendations(allItems, taste, saved, variety, feedback);
   const matches = useMemo(() => new Map(ranked.map((r) => [keyOf(r.item), r])), [ranked]);
   const filtered = useMemo(() => {
     let list =
-      view === 'My library' ? allItems.filter((t) => saved.includes(keyOf(t))) : live || catalog;
+      view === 'My library'
+        ? allItems.filter((t) => saved.includes(keyOf(t)))
+        : live || discoveryItems;
     if (view === 'For you') list = ranked.map((r) => r.item);
     list = list.filter(
       (t) =>
         (format === 'All' || t.format === format) &&
         (genre === 'All genres' || t.genres.includes(genre)) &&
+        (releaseStatus === 'ALL' || t.status === releaseStatus) &&
         ((live && view !== 'My library') ||
           `${t.title} ${t.original} ${t.genres.join(' ')}`
             .toLowerCase()
@@ -162,7 +212,19 @@ export default function Discovery() {
     if (sort === 'Top rated') return [...list].sort((a, b) => b.rating - a.rating);
     if (sort === 'Newest') return [...list].sort((a, b) => b.year - a.year);
     return list;
-  }, [view, allItems, saved, live, ranked, format, genre, query, sort]);
+  }, [
+    view,
+    allItems,
+    saved,
+    live,
+    ranked,
+    format,
+    genre,
+    query,
+    sort,
+    releaseStatus,
+    discoveryItems,
+  ]);
   function navigate(next: View) {
     setView(next);
     setMenu(false);
@@ -170,6 +232,7 @@ export default function Discovery() {
     setFormat('All');
     setGenre('All genres');
     setSort('Popular');
+    setReleaseStatus('ALL');
   }
   function toggleSave(item: Title) {
     const k = keyOf(item);
@@ -189,39 +252,15 @@ export default function Discovery() {
     if (pool.length) setSelected(pool[Math.floor(Math.random() * pool.length)].item);
     else setToast('Try another format for a fresh discovery.');
   }
-  async function liveSearch(broaden = false) {
+  function liveSearch(broaden = false) {
     if (query.trim().length < 2) {
-      setLiveStatus('Type at least two characters to search the wider catalog.');
+      setValidationMessage('Type at least two characters to search the wider catalog.');
       return;
     }
-    request.current?.abort();
-    const controller = new AbortController();
-    request.current = controller;
-    setLoading(true);
-    setLiveStatus('');
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ''}/api/search?q=${encodeURIComponent(query.trim())}&format=${format}${broaden ? '&broaden=1' : ''}`,
-        { signal: controller.signal },
-      );
-      if (!res.headers.get('content-type')?.includes('application/json')) {
-        throw new Error('Live search is unavailable right now. Please try again shortly.');
-      }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Live search is unavailable.');
-      if (!controller.signal.aborted) {
-        setLive(data.items);
-        setSource(data.source);
-        setLiveStatus(
-          data.notice || (data.items.length ? '' : 'No live results found. Try a different title.'),
-        );
-      }
-    } catch (e) {
-      if (!controller.signal.aborted)
-        setLiveStatus(e instanceof Error ? e.message : 'Live search is unavailable.');
-    } finally {
-      if (!controller.signal.aborted) setLoading(false);
-    }
+    setValidationMessage('');
+    const path = `/api/search?q=${encodeURIComponent(query.trim())}&format=${format}&status=${releaseStatus}${broaden ? '&broaden=1' : ''}`;
+    if (searchRequest === path) void searchState.mutate();
+    else setSearchRequest(path);
   }
   function pickMood(name: string, values: Taste) {
     setTaste(values);
@@ -439,6 +478,44 @@ export default function Discovery() {
               </button>
             ))}
           </div>
+          <div className="release-row">
+            <label>
+              Release status
+              <select
+                aria-label="Release status"
+                value={releaseStatus}
+                onChange={(e) => setReleaseStatus(e.target.value)}
+              >
+                <option value="ALL">All releases</option>
+                <option value="RELEASING">Airing / ongoing</option>
+                <option value="FINISHED">Aired / completed</option>
+                <option value="NOT_YET_RELEASED">TBA / upcoming</option>
+                <option value="HIATUS">On hiatus</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </label>
+            <span>
+              {activeCatalog.isValidating
+                ? 'Updating catalog…'
+                : source
+                  ? `${source} · ${activeCatalog.data?.fetchedAt ? 'checked ' + new Date(activeCatalog.data.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'cached discoveries'}`
+                  : 'Loading live catalog…'}
+            </span>
+            <button
+              className="text-button"
+              onClick={() => void activeCatalog.mutate()}
+              disabled={activeCatalog.isValidating}
+            >
+              Check updates
+            </button>
+          </div>
+          {discoveryState.error && (
+            <div className="status-message" role="status">
+              {discoveryItems.length
+                ? 'Could not refresh. Showing cached discoveries.'
+                : discoveryState.error.message}
+            </div>
+          )}
           {filters && (
             <div className="filter-panel">
               <label>
@@ -474,16 +551,16 @@ export default function Discovery() {
               Browser storage is unavailable. Your changes will last for this session.
             </p>
           )}
-          {view === 'Discover' && !query && (
+          {view === 'Discover' && !query && spotlight && (
             <div className="hero-grid">
               <section className="feature-hero" aria-label="Featured story">
                 <img
-                  src="/images/hero.jpg"
-                  alt="Frieren and her companions overlooking a sweeping fantasy landscape at sunset"
+                  src={spotlight.bannerImage || spotlight.image}
+                  alt={`${spotlight.title} banner`}
                   className="hero-art"
                 />
                 <div className="hero-shade" />
-                <CardTrailer item={catalog[0]} />
+                <CardTrailer item={spotlight} />
                 <div className="hero-content">
                   <span className="feature-label">
                     <span /> THE SPOTLIGHT
@@ -493,14 +570,14 @@ export default function Discovery() {
                     <br />
                     stay with you.
                   </h2>
-                  <p>Frieren: Beyond Journey’s End</p>
+                  <p>{spotlight.title}</p>
                   <div className="hero-meta">
                     <span>
-                      <Star size={13} fill="currentColor" /> 9.3
+                      <Star size={13} fill="currentColor" /> {spotlight.rating || 'Unrated'}
                     </span>
-                    <i /> Adventure <i /> Fantasy <i /> 2023
+                    <i /> {spotlight.genres.slice(0, 2).join(' · ')} <i /> {spotlight.year || 'TBA'}
                   </div>
-                  <button className="primary-button" onClick={() => setSelected(catalog[0])}>
+                  <button className="primary-button" onClick={() => setSelected(spotlight)}>
                     Meet your next favorite <ArrowRight size={17} />
                   </button>
                 </div>
@@ -565,7 +642,7 @@ export default function Discovery() {
                 </div>
                 <p>
                   {query
-                    ? `${filtered.length} ${filtered.length === 1 ? 'story' : 'stories'} found${source ? ` · ${source}` : ' in the curated collection'}`
+                    ? `${filtered.length} ${filtered.length === 1 ? 'story' : 'stories'} found${source ? ` · ${source}` : ' in the loaded catalog'}`
                     : view === 'My library'
                       ? `${saved.length} stories, infinite possibilities.`
                       : view === 'For you'
@@ -624,7 +701,13 @@ export default function Discovery() {
                 {liveStatus}
               </p>
             )}
-            {filtered.length ? (
+            {!filtered.length && discoveryState.isLoading && !discoveryItems.length && !query ? (
+              <div className="catalog-skeleton" role="status" aria-label="Loading live discoveries">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <span key={index} />
+                ))}
+              </div>
+            ) : filtered.length ? (
               <div className="title-grid">
                 {filtered
                   .slice(0, view === 'Discover' && !query && format === 'All' ? 6 : 36)
@@ -691,7 +774,7 @@ export default function Discovery() {
               </div>
             </section>
           )}
-          {view === 'Discover' && !query && (
+          {view === 'Discover' && !query && spotlight && (
             <section className="recommendation-section">
               <div className="section-header">
                 <div>
@@ -755,6 +838,18 @@ export default function Discovery() {
           match={matches.get(keyOf(selected))}
           saved={saved.includes(keyOf(selected))}
           onSave={() => toggleSave(selected)}
+          rating={feedback.find((entry) => keyOf(entry.item) === keyOf(selected))?.rating || 0}
+          onRate={(rating) => {
+            setFeedback((current) =>
+              [
+                ...current.filter((entry) => keyOf(entry.item) !== keyOf(selected)),
+                ...(rating ? [{ item: selected, rating }] : []),
+              ].slice(-500),
+            );
+            setToast(
+              rating ? 'Rating saved. Your local taste model is learning.' : 'Rating removed.',
+            );
+          }}
           onClose={() => setSelected(null)}
         />
       )}
@@ -765,6 +860,12 @@ export default function Discovery() {
           variety={variety}
           setVariety={setVariety}
           engine={engine}
+          candidateCount={allItems.length}
+          ratingCount={feedback.length}
+          onClearRatings={() => {
+            setFeedback([]);
+            setToast('Ratings cleared from your device.');
+          }}
           onClose={() => setMixer(false)}
           onTasteChange={() => setMood('')}
           onShowStories={() => {

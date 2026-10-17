@@ -57,8 +57,21 @@ export default function TitleCard({
       <button className="card-title" onClick={onOpen}>
         {item.title}
       </button>
+      {item.status && (
+        <div className="release-badge">
+          {
+            {
+              RELEASING: 'Airing / ongoing',
+              FINISHED: 'Completed',
+              NOT_YET_RELEASED: 'TBA / upcoming',
+              HIATUS: 'On hiatus',
+              CANCELLED: 'Cancelled',
+            }[item.status]
+          }
+        </div>
+      )}
       <div className="card-meta">
-        <span>{item.year || '—'}</span>
+        <span>{item.year || 'TBA'}</span>
         <i>·</i>
         <span>{item.episodes}</span>
       </div>
