@@ -192,6 +192,41 @@ test('home is a landing page with highlights, rails and award winners', async ({
   });
 });
 
+test('home highlight player fits its frame on playback and resize', async ({ page, isMobile }) => {
+  await page.goto('/');
+  const media = page.locator('.highlight-media');
+  await media.getByRole('button', { name: /Play trailer for/ }).click();
+  const frame = media.locator('iframe');
+  await expect(frame).toHaveCount(1);
+  await expect(page.locator('.highlight-stage')).toHaveClass(/is-playing/);
+  const sizes = isMobile
+    ? [
+        { width: 390, height: 844 },
+        { width: 844, height: 390 },
+      ]
+    : [
+        { width: 1440, height: 1100 },
+        { width: 1920, height: 800 },
+        { width: 900, height: 600 },
+      ];
+  for (const size of sizes) {
+    await page.setViewportSize(size);
+    await page.waitForTimeout(600);
+    const bounds = await frame.evaluate((el) => {
+      const player = el.getBoundingClientRect();
+      const container = el.parentElement!.getBoundingClientRect();
+      return {
+        x: player.x - container.x,
+        y: player.y - container.y,
+        width: player.width - container.width,
+        height: player.height - container.height,
+      };
+    });
+    for (const difference of Object.values(bounds)) expect(Math.abs(difference)).toBeLessThan(1);
+    expect(await noOverflow(page)).toBe(true);
+  }
+});
+
 test('sections stay separate: manhwa never shows anime, and seasons are anime-only', async ({
   page,
 }) => {
