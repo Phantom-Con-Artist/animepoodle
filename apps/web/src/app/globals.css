@@ -5338,8 +5338,15 @@ main.reader-message {
   background: #000;
   animation: fade-in 0.2s ease-out;
 }
+/* The clip box is exactly the video's size, so YouTube's strips stay outside it. */
 .trailer-theater .card-trailer-bg {
-  --yt-w: min(100cqw, 100cqh * 16 / 9);
+  inset: auto;
+  position: relative;
+  width: min(100vw, 100dvh * 16 / 9);
+  aspect-ratio: 16 / 9;
+}
+.trailer-theater .card-trailer-bg.is-live {
+  background: #000;
 }
 .theater-spinner {
   position: absolute;
