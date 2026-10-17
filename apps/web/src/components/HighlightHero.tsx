@@ -72,12 +72,13 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
           onPointerEnter={bind.onPointerEnter}
           onPointerLeave={expanded ? undefined : bind.onPointerLeave}
         >
-          <img
-            key={current.bannerImage || current.image}
-            src={current.bannerImage || current.image}
-            alt=""
-            className="highlight-art"
-          />
+          {/* Banners are ~4.75:1 and crop to a random patch on phones; the cover keeps the characters. */}
+          <picture key={current.bannerImage || current.image}>
+            {current.bannerImage && (
+              <source media="(min-width: 640px)" srcSet={current.bannerImage} />
+            )}
+            <img src={current.image} alt="" className="highlight-art" />
+          </picture>
           <CardTrailer
             key={`${current.format}:${current.id}`}
             item={current}

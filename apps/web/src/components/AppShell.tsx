@@ -40,12 +40,36 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const el = header.current;
     if (!el) return;
-    const update = () =>
-      document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`);
+    const root = document.documentElement;
+    // On phones the header slides away while scrolling down and comes back on any scroll up,
+    // so the page gets the whole screen. Sticky bars follow it through --header-h.
+    const phone = window.matchMedia('(max-width: 1023px)');
+    let hidden = false;
+    let last = window.scrollY;
+    const update = () => root.style.setProperty('--header-h', `${hidden ? 0 : el.offsetHeight}px`);
+    const setHidden = (next: boolean) => {
+      if (next === hidden) return;
+      hidden = next;
+      root.classList.toggle('header-hidden', next);
+      update();
+    };
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - last;
+      if (Math.abs(delta) < 8) return;
+      last = y;
+      const busy = el.contains(document.activeElement) && document.activeElement !== document.body;
+      setHidden(phone.matches && !busy && delta > 0 && y > el.offsetHeight);
+    };
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
-    return () => observer.disconnect();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      root.classList.remove('header-hidden');
+    };
   }, []);
   useEffect(() => {
     const key = (e: KeyboardEvent) => {

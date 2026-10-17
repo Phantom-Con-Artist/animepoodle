@@ -2245,6 +2245,11 @@ kbd {
   color: var(--muted);
   font-size: 12px;
 }
+@media (hover: none), (pointer: coarse) {
+  .highlight-hint {
+    display: none;
+  }
+}
 .highlight-picker {
   display: flex;
   gap: 10px;
@@ -3858,9 +3863,11 @@ a.cast-person:hover strong {
   min-height: 0;
 }
 .highlight-nowplaying {
-  grid-template-rows: 0fr;
+  /* One row that folds to nothing: minmax(0, …) so the buttons' tap height can't hold it open. */
+  grid-template-rows: minmax(0, 0fr);
+  grid-auto-flow: column;
   opacity: 0;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   overflow: hidden;
@@ -3886,7 +3893,7 @@ a.cast-person:hover strong {
   padding-bottom: 0;
 }
 .highlight-stage.is-playing .highlight-nowplaying {
-  grid-template-rows: 1fr;
+  grid-template-rows: minmax(0, 1fr);
   opacity: 1;
   padding: 12px 16px;
 }
@@ -5389,5 +5396,214 @@ main.reader-message {
     animation: none;
     width: 100%;
     opacity: 0.7;
+  }
+}
+
+/* ── Phone density: every pixel earns its place ──────────── */
+@media (max-width: 639px) {
+  .page {
+    padding: 12px 16px 16px;
+  }
+  .site-footer {
+    margin-top: 8px;
+  }
+  .site-footer-inner {
+    padding-top: 20px;
+    gap: 18px 16px;
+  }
+  .rail,
+  .awards,
+  .mood-section {
+    margin-bottom: 22px;
+  }
+  .rail-head {
+    margin-bottom: 8px;
+    align-items: center;
+  }
+  .rail-head p {
+    font-size: 13px;
+    line-height: 1.35;
+    margin-top: 2px;
+  }
+  .rail-actions .text-button,
+  .rail-actions a {
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+  /* Two and a bit cards per screen, so it's obvious the row scrolls. */
+  .rail-track {
+    --card-w: calc((100vw - 32px - 20px) / 2.35);
+    gap: 10px;
+    padding-bottom: 6px;
+  }
+  .rail-track .card-title {
+    font-size: 14px;
+  }
+  .rail-track .card-meta {
+    font-size: 12px;
+  }
+  .rail-track .card-trailer-control span {
+    display: none;
+  }
+  .rail-track .card-trailer-control {
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .award-list {
+    padding-top: 14px;
+    padding-bottom: 6px;
+    gap: 10px;
+    grid-auto-columns: 84%;
+    scroll-padding-left: 16px;
+  }
+  .award-card {
+    padding: 16px 10px 10px;
+    gap: 12px;
+  }
+  .award-card img {
+    width: 68px;
+  }
+  /* Moods: a tidy 2 × 2 instead of a tall stack. */
+  .mood-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .mood-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 0;
+    padding: 10px 12px 12px;
+  }
+  .mood-emoji {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+  .mood-card strong {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+  .mood-card small {
+    font-size: 12px;
+  }
+  /* Highlights */
+  .highlight-copy {
+    gap: 8px;
+    padding: 14px 14px 14px;
+  }
+  .highlight-copy > p {
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-line-clamp: 4;
+  }
+  .highlight-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: 100%;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .highlight-actions > .primary-button {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+  .highlight-actions > *,
+  .highlight-actions .status-trigger,
+  .highlight-actions .hype-button {
+    width: 100%;
+    justify-content: center;
+  }
+  .highlight-picker {
+    margin-top: 10px;
+    gap: 8px;
+  }
+}
+
+/* ── Images: shimmer while loading, then fade in ─────────── */
+img:not([data-loaded]):not(.reader-page > img) {
+  background:
+    linear-gradient(
+        100deg,
+        transparent 30%,
+        color-mix(in srgb, var(--surface) 55%, transparent) 50%,
+        transparent 70%
+      )
+      0 0 / 250% 100% no-repeat,
+    var(--sunken);
+  animation: img-shimmer 1.2s linear infinite;
+}
+img[data-loaded]:not(.reader-page > img) {
+  animation: img-in 0.35s ease-out;
+}
+@keyframes img-shimmer {
+  from {
+    background-position:
+      130% 0,
+      0 0;
+  }
+  to {
+    background-position:
+      -130% 0,
+      0 0;
+  }
+}
+@keyframes img-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  img:not([data-loaded]):not(.reader-page > img),
+  img[data-loaded]:not(.reader-page > img) {
+    animation: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .highlight-art {
+    object-position: center 22%;
+  }
+  .highlight-actions .status-trigger {
+    gap: 6px;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+  .rail-track .card-trailer-control {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    right: 6px;
+    bottom: 6px;
+  }
+  .rail-track .card-meta {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .rail-track .card-meta > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Phones: the header slides out of the way while reading down the page. */
+.site-header {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.header-hidden .site-header {
+  transform: translateY(calc(-100% - 4px));
+}
+.story-nav {
+  transition: top 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .story-nav {
+    transition: none;
   }
 }
