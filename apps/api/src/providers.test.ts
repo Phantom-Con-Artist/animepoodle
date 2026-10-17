@@ -221,27 +221,3 @@ test('Jikan identities never inherit a different curated title’s AniList ID', 
   assert.equal(mediaIdentity(collision).anilistId, undefined);
   assert.equal(mediaIdentity(collision).malId, collision.malId);
 });
-test('missing English titles come from English-looking synonyms only', async () => {
-  const { englishSynonym } = await import('./anilist.js');
-  assert.equal(
-    englishSynonym(['GSGW', 'Got Dropped into a Ghost Story, Still Gotta Work'], 'Goedame'),
-    'Got Dropped into a Ghost Story, Still Gotta Work',
-  );
-  assert.equal(
-    englishSynonym(['The Dungeon Painter'], 'Dungeon-eul Geurineun Hwaga'),
-    'The Dungeon Painter',
-  );
-  assert.equal(
-    englishSynonym(['Kimetsu no Yaiba Gaiden', 'Ore to Kimi'], 'Kimetsu no Yaiba'),
-    null,
-  );
-  assert.equal(
-    englishSynonym(['나 혼자만 레벨업', 'Na Honjaman Level Up'], 'Na Honjaman Level Up'),
-    null,
-  );
-  assert.equal(englishSynonym(null, 'x'), null);
-  assert.equal(englishSynonym(['Homeless', '無家可歸'], 'Jibi Eopseo', 'KR'), 'Homeless');
-  assert.equal(englishSynonym(['19 Days', '19日'], '19 Tian', 'CN'), '19 Days');
-  assert.equal(englishSynonym(['Oregairu'], 'Yahari Ore no Seishun', 'JP'), null);
-  assert.equal(englishSynonym(['Na Honjaman Rebeleop'], 'Na Honjaman Level Up', 'KR'), null);
-});

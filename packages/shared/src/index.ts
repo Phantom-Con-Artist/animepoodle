@@ -26,7 +26,13 @@ export interface Title {
   title: string;
   original: string;
   /** Every name the source gives, so people can pick which one they read. */
-  titles?: { english: string | null; romaji: string | null; native: string | null };
+  titles?: {
+    english: string | null;
+    romaji: string | null;
+    native: string | null;
+    /** Set when AniList had no English title and one was taken from elsewhere. */
+    englishFrom?: 'synonym' | 'MyAnimeList' | 'MangaDex';
+  };
   format: Format;
   year: number;
   rating: number;
@@ -192,6 +198,8 @@ export interface ForumTopic {
 }
 export interface CommunityResponse {
   malUrl: string;
+  /** MyAnimeList's official English title, when it has one. */
+  englishTitle?: string | null;
   background: string | null;
   members: number | null;
   rank: number | null;
@@ -382,3 +390,29 @@ export function displayTitle(item: Title, language: TitleLanguage = 'english') {
 
 export * from './hype';
 export * from './reading';
+
+/**
+ * Fill in an English title found after the catalog loaded (MyAnimeList, MangaDex). AniList's
+ * own English title always wins; a synonym guess gives way to an official source.
+ */
+export function withEnglishTitle(
+  item: Title,
+  english: string | null | undefined,
+  from: 'MyAnimeList' | 'MangaDex',
+): Title {
+  const name = english?.trim();
+  const t = item.titles;
+  if (!name || (t?.english && !t.englishFrom) || (t?.englishFrom && t.englishFrom !== 'synonym'))
+    return item;
+  if (t?.english === name) return item;
+  return {
+    ...item,
+    title: name,
+    titles: {
+      english: name,
+      romaji: t?.romaji ?? null,
+      native: t?.native ?? null,
+      englishFrom: from,
+    },
+  };
+}

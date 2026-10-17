@@ -18,6 +18,7 @@ import {
   isWatchFormat,
   kindLabel,
   mergeTitleMetadata,
+  withEnglishTitle,
   seasonLabel,
   type CommunityResponse,
   type MediaDetails,
@@ -86,12 +87,12 @@ function Story({ params }: { params: StoryParams }) {
     (url: string) => getJson<MediaDetails>(url, 'AniList details are unavailable right now.'),
     { revalidateOnFocus: false, dedupingInterval: 300000 },
   );
-  const item = useMemo(() => {
+  const loaded = useMemo(() => {
     const fresh = details.data?.media;
     if (fresh && stashed) return mergeTitleMetadata([[stashed], [fresh]])[0] || fresh;
     return fresh || stashed;
   }, [details.data, stashed]);
-  const malId = details.data?.malId || item?.malId || params.malId;
+  const malId = details.data?.malId || loaded?.malId || params.malId;
   const community = useSWR<CommunityResponse, Error>(
     malId ? `${api}/api/community?format=${params.format}&malId=${malId}&page=${reviewPage}` : null,
     async (url: string) => {
@@ -104,6 +105,11 @@ function Story({ params }: { params: StoryParams }) {
       return data;
     },
     { revalidateOnFocus: false, keepPreviousData: true, dedupingInterval: 600000 },
+  );
+  // MyAnimeList's official English title replaces a name guessed from AniList's synonyms.
+  const item = useMemo(
+    () => loaded && withEnglishTitle(loaded, community.data?.englishTitle, 'MyAnimeList'),
+    [loaded, community.data?.englishTitle],
   );
   useEffect(() => {
     if (item) document.title = `${app.name(item)} · animepoodle`;

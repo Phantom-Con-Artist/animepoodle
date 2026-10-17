@@ -285,6 +285,7 @@ export async function getJikanCommunity(
   const reviewData = reviews.status === 'fulfilled' ? reviews.value : null;
   return {
     malUrl: `https://myanimelist.net/${kind}/${malId}`,
+    englishTitle: info?.title_english?.trim() || null,
     background: info?.background?.trim() || null,
     members: info?.members ?? null,
     rank: info?.rank ?? null,

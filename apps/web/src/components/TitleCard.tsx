@@ -101,7 +101,13 @@ export default function TitleCard({
         <CardTrailer item={item} hovering={previewing} />
         <StatusMenu item={item} compact />
       </div>
-      <Link className="card-title" href={href} onClick={open}>
+      <Link
+        className="card-title"
+        href={href}
+        onClick={open}
+        // A guessed English name shows the original on hover, so look-alike names stay clear.
+        title={item.titles?.englishFrom ? item.titles.romaji || item.original : undefined}
+      >
         {name}
       </Link>
       <div className="card-meta">
