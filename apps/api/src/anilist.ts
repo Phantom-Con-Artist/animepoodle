@@ -230,7 +230,7 @@ const detailsQuery = `query StoryExtras($id:Int,$idMal:Int,$type:MediaType!,$pag
     characters(perPage:12,sort:[ROLE,RELEVANCE]){edges{role node{id name{full} image{medium}} voiceActors(language:JAPANESE,sort:[RELEVANCE]){id name{full} image{medium}}}}
     relations{edges{relationType(version:2) node{${mediaFields}}}}
     recommendations(perPage:8,sort:RATING_DESC){nodes{mediaRecommendation{${mediaFields}}}}
-    reviews(page:$page,perPage:3,sort:RATING_DESC){
+    reviews(page:$page,perPage:12,sort:RATING_DESC){
       pageInfo{currentPage hasNextPage}
       nodes{id summary score rating ratingAmount user{name}}
     }

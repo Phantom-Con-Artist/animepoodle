@@ -778,7 +778,8 @@ select option {
 }
 .review-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  align-items: start;
   gap: 14px;
 }
 .review-list[aria-busy='true'] {
@@ -1419,8 +1420,9 @@ input[type='range']::-moz-range-thumb {
   font-size: 12px;
 }
 .mal-reviews {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+  align-items: start;
   gap: 14px;
 }
 .mal-reviews[aria-busy='true'] {
