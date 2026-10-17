@@ -17,12 +17,13 @@ export async function fetchStoryDetails(
     throw new Error(data.error || 'Trailers and reviews are unavailable right now.');
   return data;
 }
-export function trailerPlayerUrl(trailer: Trailer, background = false, loop = true) {
+/** `inline: false` lets iPhones play in their own full-screen player. */
+export function trailerPlayerUrl(trailer: Trailer, background = false, loop = true, inline = true) {
   if (!trailer.embedUrl) return trailer.url;
   const url = new URL(trailer.embedUrl);
   url.searchParams.set('autoplay', '1');
   if (trailer.site === 'youtube') {
-    url.searchParams.set('playsinline', '1');
+    url.searchParams.set('playsinline', inline ? '1' : '0');
     url.searchParams.set('rel', '0');
     if (background) {
       // Muted autoplay always works; sound is switched on afterwards through the JS API.

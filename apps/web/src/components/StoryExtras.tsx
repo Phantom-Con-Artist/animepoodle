@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -16,6 +16,21 @@ export default function StoryExtras({ item, initial }: { item: Title; initial?: 
   const [data, setData] = useState<MediaDetails | null>(initial || null);
   const [page, setPage] = useState(1);
   const [playing, setPlaying] = useState(false);
+  // Phones play the trailer full screen (and sideways where the browser allows).
+  const [touch, setTouch] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => setTouch(matchMedia('(hover: none), (pointer: coarse)').matches), []);
+  const fullscreen = () => {
+    const el = panel.current;
+    if (!touch || !el?.requestFullscreen || document.fullscreenElement) return;
+    el.requestFullscreen({ navigationUI: 'hide' })
+      .then(() =>
+        (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.(
+          'landscape',
+        ),
+      )
+      .catch(() => {});
+  };
   const [loading, setLoading] = useState(!initial);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
@@ -71,10 +86,10 @@ export default function StoryExtras({ item, initial }: { item: Title; initial?: 
             </a>
           </div>
           {data.trailer ? (
-            <div className="trailer-panel">
+            <div className="trailer-panel" ref={panel}>
               {playing && data.trailer.embedUrl ? (
                 <iframe
-                  src={trailerPlayerUrl(data.trailer)}
+                  src={trailerPlayerUrl(data.trailer, false, true, !touch)}
                   title={`${item.title} trailer`}
                   allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
                   allowFullScreen
@@ -84,8 +99,10 @@ export default function StoryExtras({ item, initial }: { item: Title; initial?: 
                 <button
                   className="trailer-preview"
                   onClick={() => {
-                    if (data.trailer?.embedUrl) setPlaying(true);
-                    else if (data.trailer)
+                    if (data.trailer?.embedUrl) {
+                      fullscreen();
+                      setPlaying(true);
+                    } else if (data.trailer)
                       window.open(data.trailer.url, '_blank', 'noopener,noreferrer');
                   }}
                   aria-label={`Play ${item.title} trailer`}
