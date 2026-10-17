@@ -192,6 +192,21 @@ test('home is a landing page with highlights, rails and award winners', async ({
   });
 });
 
+test('highlight buttons stay usable: only the picture starts the trailer', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Hover previews are for mouse pointers.');
+  await page.goto('/');
+  const stage = page.locator('.highlight-stage');
+  await page.locator('.highlight-actions').getByRole('link', { name: 'See details' }).hover();
+  await page.waitForTimeout(900);
+  await expect(stage).not.toHaveClass(/is-playing/);
+  await expect(page.locator('.highlight-actions')).toBeVisible();
+  await page.locator('.highlight-media').hover();
+  await expect(stage).toHaveClass(/is-playing/, { timeout: 5000 });
+});
+
 test('home highlight player fits its frame on playback and resize', async ({ page, isMobile }) => {
   await page.goto('/');
   const media = page.locator('.highlight-media');

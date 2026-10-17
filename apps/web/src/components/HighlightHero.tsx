@@ -38,6 +38,7 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
   const app = useApp();
   const canHover = useCanHoverPreview();
   const { hovering, bind } = useHoverIntent(500);
+  const [readingCopy, setReadingCopy] = useState(false);
   const current = list[Math.min(index, list.length - 1)];
   const hasVideo = !!current?.trailer?.embedUrl;
   const expanded = playing;
@@ -51,17 +52,26 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
     if (paused || list.length < 2) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     // Reading the text (hovering a title with no trailer) also pauses rotation.
-    if (!playing && hovering) return;
+    if (!playing && (hovering || readingCopy)) return;
     const t = setTimeout(next, playing ? MAX_TRAILER_MS : ROTATE_MS);
     return () => clearTimeout(t);
-  }, [index, paused, hovering, playing, list.length, next]);
+  }, [index, paused, hovering, readingCopy, playing, list.length, next]);
 
   if (!current) return null;
   const href = storyHref(current);
   return (
     <section className="highlight" aria-label="Top highlights" aria-roledescription="carousel">
-      <div className={`highlight-stage ${expanded ? 'is-playing' : ''}`} {...bind}>
-        <div className="highlight-media">
+      <div
+        className={`highlight-stage ${expanded ? 'is-playing' : ''}`}
+        // While a trailer plays it keeps going across the whole stage, "now playing" bar included.
+        onPointerLeave={expanded ? bind.onPointerLeave : undefined}
+      >
+        {/* Only the picture starts a trailer, so the text and buttons stay clickable. */}
+        <div
+          className="highlight-media"
+          onPointerEnter={bind.onPointerEnter}
+          onPointerLeave={expanded ? undefined : bind.onPointerLeave}
+        >
           <img
             key={current.bannerImage || current.image}
             src={current.bannerImage || current.image}
@@ -90,7 +100,12 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
             See details <ArrowRight size={15} />
           </Link>
         </div>
-        <div className="highlight-copy-wrap" aria-hidden={expanded}>
+        <div
+          className="highlight-copy-wrap"
+          aria-hidden={expanded}
+          onPointerEnter={() => setReadingCopy(true)}
+          onPointerLeave={() => setReadingCopy(false)}
+        >
           <div className="highlight-copy" aria-live="polite">
             <span className="feature-label">{label}</span>
             <h1>{app.name(current)}</h1>
@@ -114,7 +129,7 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
               <HypeButton item={current} />
             </div>
             {canHover && hasVideo && app.prefs.hoverPreviews && (
-              <small className="highlight-hint">Hover here and the trailer starts.</small>
+              <small className="highlight-hint">Hover the picture and the trailer starts.</small>
             )}
           </div>
         </div>
@@ -135,13 +150,18 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
                 <strong>{app.name(item)}</strong>
                 <small>{kindLabel(item.mediaFormat)}</small>
               </span>
-              {i === index && !paused && !hovering && !playing && list.length > 1 && (
-                <i
-                  className="highlight-timer"
-                  style={{ animationDuration: `${ROTATE_MS}ms` }}
-                  key={index}
-                />
-              )}
+              {i === index &&
+                !paused &&
+                !hovering &&
+                !readingCopy &&
+                !playing &&
+                list.length > 1 && (
+                  <i
+                    className="highlight-timer"
+                    style={{ animationDuration: `${ROTATE_MS}ms` }}
+                    key={index}
+                  />
+                )}
             </button>
           ))}
           <button
