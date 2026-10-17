@@ -4618,9 +4618,10 @@ a.cast-person:hover strong {
 }
 .hype-row {
   display: grid;
-  grid-template-columns: 24px 54px minmax(0, 1fr) auto;
+  grid-template-columns: 24px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 0;
   padding: 16px 12px;
   background: var(--surface);
   border: var(--bw) solid var(--line);
@@ -4672,6 +4673,109 @@ a.cast-person:hover strong {
 .hype-row > .hype-button {
   grid-column: 3 / -1;
   justify-self: end;
+  margin-top: 12px;
+}
+/* Hovering a chart entry lifts it, grows the cover and unfolds its details. */
+.hype-row {
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.3s,
+    background-color 0.3s;
+}
+.hype-cover {
+  align-self: start;
+  transition:
+    width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.hype-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 6px;
+  padding: 2px 0;
+  background: none;
+  border: 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.hype-more svg {
+  transition: transform 0.3s;
+}
+.hype-row.is-open .hype-more svg {
+  transform: rotate(180deg);
+}
+.hype-details {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s;
+}
+.hype-details-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding-top: 14px;
+}
+.hype-details p {
+  color: var(--text);
+  line-height: 1.6;
+  max-width: 75ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+.hype-row.is-open {
+  background: var(--raised);
+  box-shadow: var(--shadow);
+}
+.hype-row.is-open .hype-details {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.hype-row.is-open .hype-cover {
+  width: 84px;
+  height: 118px;
+}
+@media (hover: hover) {
+  .hype-more {
+    display: none;
+  }
+  .hype-row:hover,
+  .hype-row:focus-within {
+    transform: translate(-2px, -2px);
+    background: var(--raised);
+    box-shadow: var(--shadow);
+  }
+  .hype-row:hover .hype-details,
+  .hype-row:focus-within .hype-details {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition-delay: 0.12s;
+  }
+  .hype-row:hover .hype-cover,
+  .hype-row:focus-within .hype-cover {
+    width: 96px;
+    height: 136px;
+    transition-delay: 0.12s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hype-row,
+  .hype-cover,
+  .hype-details,
+  .hype-more svg {
+    transition: none;
+  }
 }
 .hype-notice {
   padding: 14px 18px;
@@ -4694,9 +4798,15 @@ a.cast-person:hover strong {
 }
 @media (min-width: 640px) {
   .hype-row {
-    grid-template-columns: 36px 64px minmax(0, 1fr) 110px 120px;
+    grid-template-columns: 36px auto minmax(0, 1fr) 110px 120px;
     padding: 18px 22px;
-    gap: 18px;
+    column-gap: 18px;
+  }
+  .hype-cover {
+    grid-row: span 2;
+  }
+  .hype-details {
+    grid-column: 3 / -1;
   }
   .hype-cover {
     width: 64px;
@@ -4704,6 +4814,7 @@ a.cast-person:hover strong {
   }
   .hype-row > .hype-button {
     grid-column: auto;
+    margin-top: 0;
   }
 }
 @media (max-width: 480px) {
