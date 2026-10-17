@@ -211,9 +211,10 @@ test('home highlight player fits its frame on playback and resize', async ({ pag
   await page.goto('/');
   const media = page.locator('.highlight-media');
   await media.getByRole('button', { name: /Play trailer for/ }).click();
-  const frame = media.locator('iframe');
+  // Phones play it full screen instead of in the stage.
+  const frame = isMobile ? page.locator('.trailer-theater iframe') : media.locator('iframe');
   await expect(frame).toHaveCount(1);
-  await expect(page.locator('.highlight-stage')).toHaveClass(/is-playing/);
+  if (!isMobile) await expect(page.locator('.highlight-stage')).toHaveClass(/is-playing/);
   const sizes = isMobile
     ? [
         { width: 390, height: 844 },
@@ -227,17 +228,25 @@ test('home highlight player fits its frame on playback and resize', async ({ pag
   for (const size of sizes) {
     await page.setViewportSize(size);
     await page.waitForTimeout(600);
-    const bounds = await frame.evaluate((el) => {
+    // The player is letterboxed: its 16:9 picture fits the clip box and is centred in it,
+    // while YouTube's top and bottom strips fall outside the box.
+    const fit = await frame.evaluate((el) => {
       const player = el.getBoundingClientRect();
-      const container = el.parentElement!.getBoundingClientRect();
+      const box = el.parentElement!.getBoundingClientRect();
+      const chrome = (player.height - (player.width * 9) / 16) / 2;
       return {
-        x: player.x - container.x,
-        y: player.y - container.y,
-        width: player.width - container.width,
-        height: player.height - container.height,
+        chrome,
+        centreX: player.x + player.width / 2 - (box.x + box.width / 2),
+        centreY: player.y + player.height / 2 - (box.y + box.height / 2),
+        widthOver: player.width - box.width,
+        videoHeightOver: (player.width * 9) / 16 - box.height,
       };
     });
-    for (const difference of Object.values(bounds)) expect(Math.abs(difference)).toBeLessThan(1);
+    expect(fit.chrome).toBeGreaterThan(40);
+    expect(Math.abs(fit.centreX)).toBeLessThan(1);
+    expect(Math.abs(fit.centreY)).toBeLessThan(1);
+    expect(fit.widthOver).toBeLessThan(1);
+    expect(fit.videoHeightOver).toBeLessThan(1);
     expect(await noOverflow(page)).toBe(true);
   }
 });
@@ -403,7 +412,10 @@ test('story pages show where to watch, cast, studios and keep ratings', async ({
   expect(await noOverflow(page)).toBe(true);
 });
 
-test('story trailers are click to play and spoiler-hidden reviews paginate', async ({ page }) => {
+test('story trailers are click to play and spoiler-hidden reviews paginate', async ({
+  page,
+  isMobile,
+}) => {
   await page.route('**/api/media/*', (route) => {
     const second = new URL(route.request().url()).searchParams.get('page') === '2';
     return route.fulfill({
@@ -437,6 +449,10 @@ test('story trailers are click to play and spoiler-hidden reviews paginate', asy
     .getByRole('button', { name: 'Play Frieren: Beyond Journey’s End trailer', exact: true })
     .click();
   await expect(page.locator('.trailer-panel iframe')).toHaveCount(1);
+  if (isMobile) {
+    expect(await page.evaluate(() => document.fullscreenElement?.className)).toBe('trailer-panel');
+    await page.evaluate(() => document.exitFullscreen());
+  }
   await page.getByRole('button', { name: 'Next reviews' }).click();
   await expect(page.getByText('Second reader', { exact: true })).toBeVisible();
   await expect(page.getByText('Page 2', { exact: true })).toBeVisible();
@@ -444,7 +460,9 @@ test('story trailers are click to play and spoiler-hidden reviews paginate', asy
 
 test('card trailers play muted and looping on click and stop independently of saving', async ({
   page,
+  isMobile,
 }) => {
+  test.skip(isMobile, 'Phones play card trailers full screen (checked below).');
   await page.goto('/browse');
   const card = page.locator('.title-card').filter({ hasText: 'Frieren' });
   await expect(card.locator('.card-trailer-bg iframe')).toHaveCount(0);
@@ -454,11 +472,13 @@ test('card trailers play muted and looping on click and stop independently of sa
   const frame = card.locator('.card-trailer-bg iframe');
   await expect(frame).toHaveCount(1);
   const src = new URL((await frame.getAttribute('src'))!);
+  // Looping goes through the JS API: loop=1&playlist= would add YouTube's playlist arrows.
   expect([
     src.searchParams.get('mute'),
+    src.searchParams.get('enablejsapi'),
     src.searchParams.get('loop'),
     src.searchParams.get('playlist'),
-  ]).toEqual(['1', '1', 'abc123']);
+  ]).toEqual(['1', '1', null, null]);
   await card.getByRole('button', { name: /Add: Frieren/ }).click();
   await page.getByRole('menuitemradio', { name: 'Watched', exact: true }).click();
   await expect(frame).toHaveCount(1);
@@ -547,7 +567,7 @@ test('home shelf previews retain their original full landscape enlargement', asy
   await expect(card.locator('iframe')).toHaveCount(0);
 });
 
-test('mobile trailers play inline without expanding shelves and stop on tap', async ({
+test('mobile trailers open full screen without expanding shelves and close on tap', async ({
   page,
   isMobile,
 }) => {
@@ -557,12 +577,18 @@ test('mobile trailers play inline without expanding shelves and stop on tap', as
   await expect(card).toBeVisible();
   const before = (await card.boundingBox())!;
   await card.getByRole('button', { name: /Play trailer for/ }).tap();
-  await expect(card.locator('iframe')).toHaveCount(1);
+  const theater = page.getByRole('dialog', { name: /Frieren.*trailer/ });
+  await expect(theater.locator('iframe')).toHaveCount(1);
+  await expect(card.locator('iframe')).toHaveCount(0);
   await expect(card).not.toHaveClass(/is-previewing/);
   expect((await card.boundingBox())!.width).toBeCloseTo(before.width, 0);
+  const box = (await theater.locator('.card-trailer-bg').boundingBox())!;
+  expect(box.width).toBeCloseTo(page.viewportSize()!.width, 0);
+  expect(box.width / box.height).toBeCloseTo(16 / 9, 1);
+  await theater.getByRole('button', { name: 'Close trailer' }).tap();
+  await expect(theater).toHaveCount(0);
+  await expect(page.locator('iframe')).toHaveCount(0);
   expect(await noOverflow(page)).toBe(true);
-  await card.getByRole('button', { name: /Stop trailer for/ }).tap();
-  await expect(card.locator('iframe')).toHaveCount(0);
 });
 
 test('grid previews keep every card on its shelf at the left and right edges', async ({
