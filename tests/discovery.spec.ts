@@ -734,6 +734,8 @@ test('ratings shape For you without extra API requests', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'For you' })).toBeVisible();
   await expect(page.locator('.title-card').first()).toBeVisible();
   await expect(page.locator('.card-match').first()).toContainText('% match');
+  // The engine name lives in Settings.
+  await page.locator('main').getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(page.getByText('Rust / WebAssembly', { exact: true })).toBeVisible();
 });
 
