@@ -1,5 +1,5 @@
-import { type Title, type MediaExtras } from '@animepoodle/shared';
-import { searchAniList, discoverAniList } from './anilist.js';
+import { type Title, type MediaExtras, type SearchMatches } from '@animepoodle/shared';
+import { searchAniListTerms, discoverAniList } from './anilist.js';
 import { searchJikan, getJikanExtras, discoverJikan } from './jikan.js';
 import { getAnimeThemes } from './animethemes.js';
 export function mergeCatalog(primary: Title[], secondary: Title[]): Title[] {
@@ -13,18 +13,21 @@ export function mergeCatalog(primary: Title[], secondary: Title[]): Title[] {
 }
 export async function searchCatalog(q: string, format: string, broaden = false, status = 'ALL') {
   let primary: Title[] = [];
+  let matched: SearchMatches | undefined;
   let primaryError: unknown;
   try {
-    primary = await searchAniList(q, format, status);
+    ({ items: primary, matched } = await searchAniListTerms(q, format, status));
   } catch (error) {
     primaryError = error;
   }
-  if (!broaden && !primaryError && primary.length) return { items: primary, source: 'AniList' };
+  if (!broaden && !primaryError && primary.length)
+    return { items: primary, source: 'AniList', matched };
   if (format === 'Donghua') {
     if (primaryError) throw primaryError;
     return {
       items: primary,
       source: 'AniList',
+      matched,
       ...(broaden
         ? {
             notice:
@@ -40,6 +43,7 @@ export async function searchCatalog(q: string, format: string, broaden = false, 
     return {
       items,
       source: primary.length ? (secondary.length ? 'AniList + Jikan' : 'AniList') : 'Jikan',
+      matched,
       ...(primaryError
         ? { notice: 'AniList is temporarily unavailable. Showing Jikan results.' }
         : {}),
@@ -49,6 +53,7 @@ export async function searchCatalog(q: string, format: string, broaden = false, 
     return {
       items: primary,
       source: 'AniList',
+      matched,
       ...(broaden
         ? { notice: 'Jikan is unavailable right now. Your AniList results are still here.' }
         : {}),

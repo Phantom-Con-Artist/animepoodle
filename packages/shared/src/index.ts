@@ -250,11 +250,18 @@ export const releaseStatuses = [
   'CANCELLED',
 ] as const;
 export type ReleaseStatus = Exclude<(typeof releaseStatuses)[number], 'ALL'>;
+/** What a loose search read into the query besides titles. */
+export interface SearchMatches {
+  genres: string[];
+  tags: string[];
+  studios: string[];
+}
 export interface CatalogResponse {
   items: Title[];
   source: string;
   notice?: string;
   fetchedAt?: string;
+  matched?: SearchMatches;
 }
 export function mergeTitleMetadata(groups: Title[][]) {
   const map = new Map<string, Title>();

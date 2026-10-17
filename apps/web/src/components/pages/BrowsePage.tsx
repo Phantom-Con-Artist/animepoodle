@@ -126,6 +126,14 @@ export default function BrowsePage() {
     [search.data, section.format, kinds, genre, year],
   );
   const items = q ? searchItems : browseItems;
+  const matched = (search.data as CatalogResponse | undefined)?.matched;
+  const matchedTerms: [string, string][] = matched
+    ? [
+        ...matched.studios.map((n): [string, string] => ['studio', n]),
+        ...matched.genres.map((n): [string, string] => ['genre', n]),
+        ...matched.tags.map((n): [string, string] => ['tag', n]),
+      ]
+    : [];
   useRemember(q ? searchItems : pages.data?.[pages.data.length - 1]?.items);
   const total = pages.data?.[0]?.pageInfo.total;
   const loading = q ? search.isLoading : pages.isLoading;
@@ -314,6 +322,16 @@ export default function BrowsePage() {
         </span>
       </div>
 
+      {q && matchedTerms.length > 0 && (
+        <p className="search-matched">
+          <span>Also searching</span>
+          {matchedTerms.map(([kind, name]) => (
+            <span key={`${kind}:${name}`} className="chip">
+              {name} <small>{kind}</small>
+            </span>
+          ))}
+        </p>
+      )}
       {q && search.data && section.format !== 'Donghua' && !broaden && (
         <div className="live-search-bar">
           <span>

@@ -3038,6 +3038,23 @@ kbd {
   font-weight: 700;
   color: var(--muted);
 }
+.search-matched {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.search-matched .chip {
+  color: var(--text);
+}
+.search-matched .chip small {
+  color: var(--muted);
+  font-weight: 600;
+}
 .load-more {
   display: flex;
   justify-content: center;

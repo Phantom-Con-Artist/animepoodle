@@ -70,7 +70,7 @@ The first deployment may prompt you to create a Pages project named `animepoodle
 
 - **Home**: Top highlights that rotate every 9 seconds. Hovering one expands the picture into a landscape player and plays its trailer once, then the next highlight takes over. Rows below: Continue watching, This week, Fresh this month, Best of the year, This season, Anime of the Year winners, Coming soon, your list and your matches.
 - **Separate sections** for Anime, Chinese anime, Manga, Manhwa and Manhua. Recommendations, moods and Surprise me never mix them.
-- **Browse**: every AniList title, filtered by type (TV series, Movie, OVA, Special, Short, Web series; Series, One-shot, Novel for comics), year, season, genre and status. Filters live in the URL, so views can be shared. Search falls back to and can broaden with Jikan.
+- **Browse**: every AniList title, filtered by type (TV series, Movie, OVA, Special, Short, Web series; Series, One-shot, Novel for comics), year, season, genre and status. Filters live in the URL, so views can be shared. Search is forgiving: besides titles it understands studios (“mappa”, even “kyoto animaton”), genres and tags (“isekai romcom”, “shonen sports”, “psycho thriller”), with small typos and common shorthand. What it read into the query is shown above the results. Search falls back to and can broaden with Jikan.
 - **Top rated**: a ranked chart by AniList score, ignoring titles with too few votes; filter by year, genre and type.
 - **Seasonal**: any anime season, grouped by type.
 - **My library**: Watching / Reading, Next on my list, Watched / Read, On hold and Dropped, across every section, with counts, grid or list view, and sorting. Older bookmarks migrate to "Next on my list".

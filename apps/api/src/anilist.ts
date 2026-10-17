@@ -5,10 +5,25 @@ import {
   type Trailer,
   type MediaLink,
   type MediaProfile,
+  type SearchMatches,
 } from '@animepoodle/shared';
 import { httpsUrl, youtubeUrl } from './urls.js';
+import {
+  editDistance,
+  normalizeTerm,
+  parseSearchTerms,
+  type SearchTerms,
+  type SearchVocabulary,
+} from './search-terms.js';
 export const mediaFields = `id idMal title{english romaji native} type format status countryOfOrigin tags{name rank isAdult isGeneralSpoiler isMediaSpoiler} startDate{year} season seasonYear popularity averageScore episodes chapters genres description(asHtml:false) bannerImage coverImage{large extraLarge color} trailer{id site}`;
-const query = `query Search($search:String!,$type:MediaType,$country:CountryCode,$status:MediaStatus){Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,status:$status,isAdult:false,sort:SEARCH_MATCH){${mediaFields}}}}`;
+// Titles always; studios for anime; the genre/tag vocabulary only until it is cached.
+const query = `query Search($search:String!,$type:MediaType,$country:CountryCode,$status:MediaStatus,$studios:Boolean!,$studioSearch:String,$vocab:Boolean!){
+  Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,status:$status,isAdult:false,sort:SEARCH_MATCH){${mediaFields}}}
+  studios: Page(page:1,perPage:6) @include(if:$studios){studios(search:$studioSearch,sort:SEARCH_MATCH){id name media(isMain:true,sort:POPULARITY_DESC,perPage:18){nodes{${mediaFields} isAdult}}}}
+  GenreCollection @include(if:$vocab)
+  MediaTagCollection @include(if:$vocab){name isAdult}
+}`;
+const keywordQuery = `query Keywords($search:String,$type:MediaType,$country:CountryCode,$status:MediaStatus,$genres:[String],$tags:[String]){Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,status:$status,genre_in:$genres,tag_in:$tags,minimumTagRank:60,isAdult:false,sort:POPULARITY_DESC){${mediaFields}}}}`;
 const discoveryQuery = `query Discover($type:MediaType,$country:CountryCode,$status:MediaStatus,$sort:[MediaSort]){Page(page:1,perPage:30){media(type:$type,countryOfOrigin:$country,status:$status,isAdult:false,sort:$sort){${mediaFields}}}}`;
 export interface AniMedia {
   id: number;
@@ -125,17 +140,53 @@ export function normalizeMedia(d: AniMedia): Title {
     features: featuresFor(d.genres || []),
   };
 }
-const cache = new Map<string, { at: number; items: Title[] }>();
-const pending = new Map<string, Promise<Title[]>>();
+export interface SearchResult {
+  items: Title[];
+  matched: SearchMatches;
+}
+const cache = new Map<string, { at: number; value: SearchResult }>();
+const pending = new Map<string, Promise<SearchResult>>();
 let cooldownUntil = 0;
-export async function searchAniList(
+let vocabulary: { at: number; value: SearchVocabulary } | null = null;
+const freshVocabulary = () =>
+  vocabulary && Date.now() - vocabulary.at < 86400000 ? vocabulary.value : null;
+function readVocabulary(data: {
+  GenreCollection?: unknown;
+  MediaTagCollection?: { name: string; isAdult?: boolean }[];
+}) {
+  if (!Array.isArray(data.GenreCollection) || !Array.isArray(data.MediaTagCollection)) return;
+  vocabulary = {
+    at: Date.now(),
+    value: {
+      genres: data.GenreCollection.filter(
+        (g): g is string => typeof g === 'string' && !['Ecchi', 'Hentai'].includes(g),
+      ),
+      tags: data.MediaTagCollection.filter((t) => typeof t?.name === 'string' && !t.isAdult).map(
+        (t) => t.name,
+      ),
+    },
+  };
+}
+const titleKeys = (t: Title) =>
+  [t.title, t.original, t.titles?.english, t.titles?.romaji, t.titles?.native]
+    .filter((v): v is string => !!v)
+    .map(normalizeTerm);
+
+export async function searchAniList(search: string, format: string, status = 'ALL') {
+  return (await searchAniListTerms(search, format, status)).items;
+}
+/**
+ * Title search widened with studios ("mappa", "kyoto animation") and genre/tag words
+ * ("isekai romcom", "shonen sports"), with small typos forgiven.
+ */
+export async function searchAniListTerms(
   search: string,
   format: string,
   status = 'ALL',
-): Promise<Title[]> {
+): Promise<SearchResult> {
   const key = `${format}:${status}:${search.toLowerCase()}`;
   const cached = cache.get(key);
-  if (cached && Date.now() - cached.at < 60000) return cached.items;
+  if (cached && Date.now() - cached.at < 60000) return cached.value;
   if (cooldownUntil > Date.now())
     throw new CatalogError(
       'AniList is taking a short breather. Please try again in a minute.',
@@ -159,20 +210,74 @@ export async function searchAniList(
           : format === 'Manga'
             ? 'JP'
             : undefined;
-    const data = await requestAniList(query, {
-      search,
-      type,
-      country,
-      status: status === 'ALL' ? undefined : status,
-    });
+    const filters = { type, country, status: status === 'ALL' ? undefined : status };
+    const fits = (t: Title) => format === 'All' || t.format === format;
+    const known = freshVocabulary();
+    const early = known ? parseSearchTerms(search, known) : null;
+    const keywordSearch = (terms: SearchTerms) =>
+      terms.genres.length || terms.tags.length
+        ? requestAniList(keywordQuery, {
+            ...filters,
+            search: terms.rest || undefined,
+            genres: terms.genres.length ? terms.genres : undefined,
+            tags: terms.tags.length ? terms.tags : undefined,
+          }).catch(() => null)
+        : Promise.resolve(null);
+    const [data, earlyKeywords] = await Promise.all([
+      requestAniList(query, {
+        search,
+        ...filters,
+        studios: type !== 'MANGA',
+        // The first word finds the studio even when the rest of its name has a typo.
+        studioSearch: normalizeTerm(search).split(' ')[0] || search,
+        vocab: !known,
+      }),
+      early ? keywordSearch(early) : Promise.resolve(null),
+    ]);
     if (data.errors || !Array.isArray(data.data?.Page?.media))
       throw new CatalogError(
         'The catalog could not complete this search. Please try another title.',
       );
-    const items = data.data.Page.media.map(normalizeMedia);
+    if (!known) readVocabulary(data.data);
+    const terms = early || parseSearchTerms(search, freshVocabulary());
+    const keywords = early ? earlyKeywords : await keywordSearch(terms);
+    const titles: Title[] = data.data.Page.media.map(normalizeMedia);
+    const tagged: Title[] = Array.isArray(keywords?.data?.Page?.media)
+      ? keywords.data.Page.media.map(normalizeMedia)
+      : [];
+    // A studio counts when its name is what was typed, give or take a typo or a prefix.
+    const wanted = normalizeTerm(search);
+    const studios = (data.data.studios?.studios || []).filter((s: { name?: string }) => {
+      const name = normalizeTerm(s.name || '');
+      return (
+        !!name &&
+        (name === wanted ||
+          (wanted.length >= 3 && name.startsWith(wanted)) ||
+          editDistance(name, wanted, wanted.length >= 6 ? 1 : 0) <= (wanted.length >= 6 ? 1 : 0))
+      );
+    });
+    const studioWorks: Title[] = studios.flatMap(
+      (s: { media?: { nodes?: (AniMedia & { isAdult?: boolean })[] } }) =>
+        (s.media?.nodes || []).filter((m) => !m.isAdult).map(normalizeMedia),
+    );
+    const named = titles.filter((t) => titleKeys(t).some((k) => k.includes(wanted)));
+    const seen = new Set<number>();
+    const items = [...named, ...studioWorks, ...tagged, ...titles].filter((t) => {
+      if (!fits(t) || seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
+    const value: SearchResult = {
+      items: items.slice(0, 60),
+      matched: {
+        genres: tagged.length ? terms.genres : [],
+        tags: tagged.length ? terms.tags : [],
+        studios: studioWorks.length ? studios.map((s: { name: string }) => s.name) : [],
+      },
+    };
     if (cache.size >= 100) cache.delete(cache.keys().next().value!);
-    cache.set(key, { at: Date.now(), items });
-    return items;
+    cache.set(key, { at: Date.now(), value });
+    return value;
   })();
   pending.set(key, work);
   try {
