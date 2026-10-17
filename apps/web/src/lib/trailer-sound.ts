@@ -28,6 +28,10 @@ export function useTrailerSound() {
   );
 }
 /** Sends a command to a YouTube iframe player (needs enablejsapi=1 in its URL). */
-export function youtubeCommand(frame: HTMLIFrameElement | null, func: 'mute' | 'unMute') {
-  frame?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args: [] }), '*');
+export function youtubeCommand(
+  frame: HTMLIFrameElement | null,
+  func: 'mute' | 'unMute' | 'seekTo' | 'playVideo',
+  args: unknown[] = [],
+) {
+  frame?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
 }

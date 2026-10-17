@@ -2203,7 +2203,7 @@ kbd {
   object-position: center 30%;
   animation: fade-in 0.4s ease-out;
 }
-.highlight-media:has(.card-trailer-bg) .highlight-art {
+.highlight-media:has(.card-trailer-bg.is-live) .highlight-art {
   opacity: 0;
 }
 @keyframes fade-in {
@@ -2437,13 +2437,6 @@ kbd {
     transition: none;
   }
 }
-.title-shelf .card-trailer-bg iframe {
-  min-width: 0;
-  min-height: 0;
-  width: 100%;
-  height: auto;
-  max-height: 100%;
-}
 .card-skeleton {
   display: block;
   aspect-ratio: 0.7;
@@ -2499,8 +2492,8 @@ kbd {
   height: 100%;
   object-fit: cover;
 }
-.poster-wrap:has(.card-trailer-bg) .poster-button > img,
-.poster-wrap:has(.card-trailer-bg) .cover-fallback {
+.poster-wrap:has(.card-trailer-bg.is-live) .poster-button > img,
+.poster-wrap:has(.card-trailer-bg.is-live) .cover-fallback {
   opacity: 0;
 }
 .poster-wrap:has(.card-trailer-bg) .poster-button {
@@ -2622,38 +2615,40 @@ kbd {
   color: var(--text);
 }
 
-/* Trailer layer inside cards */
+/* Trailer layer inside cards. The picture stays visible until the video is really playing. */
 .card-trailer-bg {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
+  container-type: size;
+  --yt-chrome: 72px;
+  --yt-w: max(100cqw, 100cqh * 16 / 9);
+}
+.card-trailer-bg.is-live {
   background: var(--ink);
 }
 .card-trailer-bg iframe {
-  /* A 16:9 video that always covers the frame, portrait card or wide banner. */
+  /* A 16:9 video that covers the frame. The player is taller than the video, so YouTube's
+     title bar and logo strip land in letterbox bands outside the visible area. */
   position: absolute;
   top: 50%;
   left: 50%;
-  width: auto;
-  height: auto;
-  min-width: 100%;
-  min-height: 100%;
-  aspect-ratio: 16 / 9;
+  width: var(--yt-w);
+  height: calc(var(--yt-w) * 9 / 16 + var(--yt-chrome) * 2);
   transform: translate(-50%, -50%);
   border: 0;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease-out;
 }
-/* Highlights show the complete player; YouTube fits the video inside this viewport. */
-.highlight-media .card-trailer-bg iframe {
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  aspect-ratio: auto;
-  transform: none;
+.card-trailer-bg.is-live iframe {
+  opacity: 1;
+}
+/* Highlights show the whole picture: fit inside instead of covering. */
+.highlight-media .card-trailer-bg {
+  --yt-w: min(100cqw, 100cqh * 16 / 9);
 }
 .card-trailer-control,
 .card-sound-control {
@@ -5324,4 +5319,75 @@ main.reader-message {
   min-height: 36px;
   padding: 4px 10px;
   text-decoration: none;
+}
+
+/* Full-screen trailer on touch screens */
+.trailer-theater {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: #000;
+  animation: fade-in 0.2s ease-out;
+}
+.trailer-theater .card-trailer-bg {
+  --yt-w: min(100cqw, 100cqh * 16 / 9);
+}
+.theater-spinner {
+  position: absolute;
+  color: #fff;
+  animation: spin 0.9s linear infinite;
+}
+.theater-close {
+  position: absolute;
+  z-index: 2;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.16);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+.theater-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* A trailer is on its way: a running bar along the bottom of the picture. */
+.poster-wrap:has(.card-trailer-bg:not(.is-live))::after,
+.highlight-media:has(.card-trailer-bg:not(.is-live))::after {
+  content: '';
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  bottom: 0;
+  width: 35%;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--yellow);
+  box-shadow: 0 0 0 1px var(--ink);
+  pointer-events: none;
+  animation: trailer-loading 0.9s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+@keyframes trailer-loading {
+  from {
+    transform: translateX(-20%);
+  }
+  to {
+    transform: translateX(305%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .poster-wrap:has(.card-trailer-bg:not(.is-live))::after,
+  .highlight-media:has(.card-trailer-bg:not(.is-live))::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.7;
+  }
 }

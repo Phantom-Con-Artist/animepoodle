@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Play, Square, LoaderCircle, Volume2, VolumeX } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Play, Square, LoaderCircle, Volume2, VolumeX, X } from 'lucide-react';
 import { type Title, type Trailer } from '@animepoodle/shared';
 import { fetchStoryDetails, trailerPlayerUrl } from '@/lib/trailers';
 import { setTrailerSound, useTrailerSound, youtubeCommand } from '@/lib/trailer-sound';
@@ -18,6 +19,25 @@ export function useCanHoverPreview() {
     return () => query.removeEventListener('change', update);
   }, []);
   return ok;
+}
+
+/** Opens connections to YouTube ahead of time, so a trailer starts the moment it's asked for. */
+let warmed = false;
+export function warmYouTube() {
+  if (warmed || typeof document === 'undefined') return;
+  warmed = true;
+  for (const href of [
+    'https://www.youtube-nocookie.com',
+    'https://www.youtube.com',
+    'https://i.ytimg.com',
+    'https://www.google.com',
+  ]) {
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = href;
+    link.crossOrigin = '';
+    document.head.append(link);
+  }
 }
 
 /** Starts after the pointer rests for a moment, so sweeping across a grid doesn't load videos. */
@@ -38,6 +58,7 @@ export function useHoverIntent(delay = 450, wrap?: (update: () => void) => void)
     bind: {
       onPointerEnter: (e: React.PointerEvent) => {
         if (e.pointerType !== 'mouse') return;
+        warmYouTube();
         clearTimeout(timer.current!);
         timer.current = setTimeout(() => set(true), delay);
       },
@@ -61,6 +82,11 @@ export function useHoverIntent(delay = 450, wrap?: (update: () => void) => void)
     },
   };
 }
+type PlayerMessage = {
+  event?: string;
+  info?: number | { playerState?: number; currentTime?: number; duration?: number };
+};
+
 /** Browsers pause videos that unmute before the visitor has clicked anything on the page. */
 const canUnmute = () =>
   typeof navigator === 'undefined' ||
@@ -108,41 +134,135 @@ export default function CardTrailer({
   const trailer = item.trailer !== undefined ? item.trailer : fetched;
   const unavailable = trailer === null;
   const playing = !!trailer?.embedUrl && (clicked || (hovering && !hoverStopped));
+  // Phones and tablets play a pressed trailer full screen, with sound, instead of in the card.
+  const canHover = useCanHoverPreview();
+  const [theater, setTheater] = useState(false);
+  const fullscreened = useRef(false);
+  const closeTheater = () => {
+    setTheater(false);
+    setClicked(false);
+    if (fullscreened.current && document.fullscreenElement) void document.exitFullscreen();
+    fullscreened.current = false;
+  };
+  const openTheater = () => {
+    setTheater(true);
+    // Must run inside the tap itself, before any await, or the browser refuses.
+    const root = document.documentElement;
+    if (!root.requestFullscreen || document.fullscreenElement) return;
+    root
+      .requestFullscreen({ navigationUI: 'hide' })
+      .then(() => {
+        fullscreened.current = true;
+        const orientation = screen.orientation as ScreenOrientation & {
+          lock?: (o: string) => Promise<void>;
+        };
+        return orientation.lock?.('landscape');
+      })
+      .catch(() => {});
+  };
+  useEffect(() => {
+    if (!theater) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeTheater();
+    // Leaving full screen (the Back gesture on Android) closes the trailer too.
+    const onFullscreen = () => {
+      if (fullscreened.current && !document.fullscreenElement) {
+        fullscreened.current = false;
+        closeTheater();
+      }
+    };
+    const scroll = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('fullscreenchange', onFullscreen);
+    return () => {
+      document.body.style.overflow = scroll;
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('fullscreenchange', onFullscreen);
+    };
+  }, [theater]);
+  const looping = loop && !theater;
 
   // An explicit stop wins over hover until the pointer leaves the card.
   useEffect(() => {
     if (!hovering) setHoverStopped(false);
   }, [hovering]);
 
-  useEffect(() => onPlayingChange?.(playing), [playing, onPlayingChange]);
-  // The YouTube player reports its state over postMessage once we say we're listening.
+  const inCard = playing && !theater;
+  useEffect(() => onPlayingChange?.(inCard), [inCard, onPlayingChange]);
+  // Only show the player while the video is really running: YouTube's title card, pause
+  // overlay and "more videos" end screen never get a frame. Until then the artwork stays.
+  const [live, setLive] = useState(false);
   useEffect(() => {
-    if (!playing || !onEnded || trailer?.site !== 'youtube') return;
+    setLive(false);
+    if (!playing || trailer?.site !== 'youtube') return;
+    let ended = false;
+    let heard = false;
+    let duration = 0;
+    let time = 0;
+    // YouTube only reports to pages that say they're listening, and ignores the message until
+    // its player is ready, so keep asking until it answers.
+    const listen = setInterval(() => {
+      if (heard) return clearInterval(listen);
+      frame.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'listening', id: item.id, channel: 'widget' }),
+        '*',
+      );
+    }, 200);
+    // If the player never reports (blocked messages), show it anyway rather than never.
+    const fallback = setTimeout(() => !heard && setLive(true), 2500);
+    const finish = () => {
+      if (ended) return;
+      ended = true;
+      setLive(false);
+      if (theater) closeTheater();
+      else onEnded?.();
+    };
     const onMessage = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow) return;
-      let data: { event?: string; info?: number | { playerState?: number } } | null = null;
+      let data: PlayerMessage | null = null;
       try {
         data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
       } catch {
         return;
       }
+      heard = true;
+      const info = typeof data?.info === 'object' && data.info ? data.info : undefined;
+      if (info?.duration) duration = info.duration;
+      if (info?.currentTime != null) time = info.currentTime;
       const state =
-        data?.event === 'onStateChange'
+        data?.event === 'onStateChange' && typeof data.info === 'number'
           ? data.info
-          : data?.event === 'infoDelivery' && typeof data.info === 'object'
-            ? data.info?.playerState
-            : undefined;
-      if (state === 0) onEnded();
+          : info?.playerState;
+      if (state === 1) {
+        ended = false;
+        setLive(true);
+      } else if (state === 2) setLive(false);
+      else if (state === 0) {
+        if (looping) {
+          youtubeCommand(frame.current, 'seekTo', [0, true]);
+          youtubeCommand(frame.current, 'playVideo');
+        } else finish();
+      }
+      // Leave just before the end, so the end screen never draws: loop back or hand over.
+      if (duration && info?.currentTime != null && duration - time < 0.6) {
+        if (looping) youtubeCommand(frame.current, 'seekTo', [0, true]);
+        else finish();
+      }
     };
     window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, [playing, onEnded, trailer]);
+    return () => {
+      clearInterval(listen);
+      clearTimeout(fallback);
+      window.removeEventListener('message', onMessage);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, onEnded, trailer, looping, theater]);
 
   // Apply the sound setting to the running player without restarting the video.
   useEffect(() => {
     if (playing && trailer?.site === 'youtube')
-      youtubeCommand(frame.current, sound && canUnmute() ? 'unMute' : 'mute');
-  }, [sound, playing, trailer]);
+      youtubeCommand(frame.current, (sound || theater) && canUnmute() ? 'unMute' : 'mute');
+  }, [sound, playing, trailer, theater]);
 
   async function toggle() {
     if (playing) {
@@ -151,6 +271,8 @@ export default function CardTrailer({
       return;
     }
     setHoverStopped(false);
+    warmYouTube();
+    if (!canHover && trailer !== null) openTheater();
     if (trailer !== undefined) {
       if (trailer?.embedUrl) setClicked(true);
       return;
@@ -164,39 +286,67 @@ export default function CardTrailer({
       if (controller.signal.aborted) return;
       setFetched(data.trailer);
       if (data.trailer?.embedUrl) setClicked(true);
+      else closeTheater();
     } catch {
+      closeTheater();
       if (!controller.signal.aborted) setError('Trailer unavailable. Try again.');
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
   }
 
+  const player = (trailer: Trailer) => (
+    <div className={`card-trailer-bg${live || trailer.site !== 'youtube' ? ' is-live' : ''}`}>
+      <iframe
+        ref={frame}
+        onLoad={() => {
+          frame.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: 'listening', id: item.id, channel: 'widget' }),
+            '*',
+          );
+          // The player needs a moment after load before it accepts commands.
+          if ((sound || theater) && trailer.site === 'youtube' && canUnmute())
+            [400, 1200].forEach((t) =>
+              setTimeout(() => youtubeCommand(frame.current, 'unMute'), t),
+            );
+        }}
+        src={trailerPlayerUrl(trailer, true, looping)}
+        title={`${item.title} background trailer`}
+        allow="autoplay; encrypted-media"
+        tabIndex={-1}
+        aria-hidden="true"
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  );
+
   return (
     <>
-      {playing && trailer && (
-        <div className="card-trailer-bg">
-          <iframe
-            ref={frame}
-            onLoad={() => {
-              frame.current?.contentWindow?.postMessage(
-                JSON.stringify({ event: 'listening', id: item.id, channel: 'widget' }),
-                '*',
-              );
-              // The player needs a moment after load before it accepts commands.
-              if (sound && trailer.site === 'youtube' && canUnmute())
-                [400, 1200].forEach((t) =>
-                  setTimeout(() => youtubeCommand(frame.current, 'unMute'), t),
-                );
-            }}
-            src={trailerPlayerUrl(trailer, true, loop)}
-            title={`${item.title} background trailer`}
-            allow="autoplay; encrypted-media"
-            tabIndex={-1}
-            aria-hidden="true"
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
-        </div>
-      )}
+      {playing && trailer && !theater && player(trailer)}
+      {theater &&
+        createPortal(
+          <div
+            className="trailer-theater"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${item.title} trailer`}
+          >
+            {playing && trailer && player(trailer)}
+            {!(playing && (live || trailer?.site !== 'youtube')) && (
+              <LoaderCircle className="theater-spinner" size={34} aria-label="Loading trailer" />
+            )}
+            <button
+              type="button"
+              className="theater-close"
+              onClick={closeTheater}
+              aria-label="Close trailer"
+              autoFocus
+            >
+              <X size={22} />
+            </button>
+          </div>,
+          document.body,
+        )}
       {showControl &&
         (trailer && !trailer.embedUrl ? (
           <a
@@ -229,7 +379,7 @@ export default function CardTrailer({
             </span>
           </button>
         ))}
-      {playing && trailer?.site === 'youtube' && (
+      {playing && !theater && trailer?.site === 'youtube' && (
         <button
           className="card-sound-control"
           aria-pressed={sound}

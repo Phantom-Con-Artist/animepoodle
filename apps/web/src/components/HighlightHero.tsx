@@ -37,7 +37,7 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
   const [playing, setPlaying] = useState(false);
   const app = useApp();
   const canHover = useCanHoverPreview();
-  const { hovering, bind } = useHoverIntent(500);
+  const { hovering, bind } = useHoverIntent(320);
   const [readingCopy, setReadingCopy] = useState(false);
   const current = list[Math.min(index, list.length - 1)];
   const hasVideo = !!current?.trailer?.embedUrl;

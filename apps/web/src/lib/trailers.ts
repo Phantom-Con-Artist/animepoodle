@@ -35,10 +35,8 @@ export function trailerPlayerUrl(trailer: Trailer, background = false, loop = tr
       url.searchParams.set('cc_load_policy', '0');
       url.searchParams.set('controls', '0');
       url.searchParams.set('disablekb', '1');
-      if (loop) {
-        url.searchParams.set('loop', '1');
-        url.searchParams.set('playlist', url.pathname.split('/').pop()!);
-      }
+      // No loop=1&playlist=: that turns the embed into a playlist with its own prev/next
+      // overlay. The card loops the video itself through the JS API instead.
     }
   } else if (background) {
     url.searchParams.set('mute', 'true');

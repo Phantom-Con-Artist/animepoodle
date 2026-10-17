@@ -38,7 +38,7 @@ export default function TitleCard({
   const [failed, setFailed] = useState(false);
   const canHover = useCanHoverPreview();
   const root = useRef<HTMLElement>(null);
-  const { hovering, bind } = useHoverIntent(550);
+  const { hovering, bind } = useHoverIntent(380);
   const previewing = canHover && hovering && app.prefs.hoverPreviews && !!item.trailer?.embedUrl;
   useLayoutEffect(() => {
     const el = root.current;
