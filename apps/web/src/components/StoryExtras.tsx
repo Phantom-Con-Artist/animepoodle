@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { type Title, type MediaDetails } from '@animepoodle/shared';
 import { fetchStoryDetails, trailerPlayerUrl } from '@/lib/trailers';
+import SupplementalMedia from './SupplementalMedia';
 export default function StoryExtras({ item }: { item: Title }) {
   const [data, setData] = useState<MediaDetails | null>(null);
   const [page, setPage] = useState(1);
@@ -110,6 +111,18 @@ export default function StoryExtras({ item }: { item: Title }) {
           ) : (
             <p className="extras-empty">No trailer has been added to AniList for this story yet.</p>
           )}
+          {!!data.youtubeLinks?.length && (
+            <div className="youtube-links" aria-label="YouTube links from AniList">
+              <strong>On YouTube</strong>
+              {data.youtubeLinks.map((link) => (
+                <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer">
+                  {link.label}
+                  <span>{link.source}</span>
+                  <ArrowUpRight size={13} />
+                </a>
+              ))}
+            </div>
+          )}
           <div className="extras-heading reviews-heading">
             <h3>
               <MessageSquare size={18} />
@@ -179,6 +192,7 @@ export default function StoryExtras({ item }: { item: Title }) {
           )}
         </>
       )}
+      <SupplementalMedia item={item} bannerImage={data?.bannerImage || item.bannerImage} />
     </section>
   );
 }

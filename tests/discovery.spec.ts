@@ -236,3 +236,139 @@ test('cards preserve cover artwork when a trailer is missing', async ({ page }) 
   await expect(page.locator('.card-trailer-bg iframe')).toHaveCount(0);
   await expect(page.locator('.title-card img').first()).toBeVisible();
 });
+
+test('soundtrack extras are on demand, attributed, and click to play', async ({ page }) => {
+  let extrasRequests = 0;
+  await page.route('**/api/media/*', (route) =>
+    route.fulfill({
+      json: {
+        anilistId: 154587,
+        malId: 52991,
+        url: 'https://anilist.co/anime/154587',
+        bannerImage: '/images/hero.jpg',
+        youtubeLinks: [
+          {
+            label: 'Trailer on YouTube',
+            url: 'https://www.youtube.com/watch?v=abc123',
+            source: 'AniList',
+          },
+        ],
+        trailer: null,
+        reviews: [],
+        pageInfo: { currentPage: 1, hasNextPage: false },
+      },
+    }),
+  );
+  await page.route('**/api/extras?*', (route) => {
+    extrasRequests++;
+    const url = new URL(route.request().url());
+    expect(url.searchParams.get('anilistId')).toBe('154587');
+    expect(url.searchParams.get('malId')).toBe('52991');
+    return route.fulfill({
+      json: {
+        themes: [
+          {
+            id: 'op1',
+            label: 'OP1',
+            title: 'Opening Song',
+            artists: ['Artist'],
+            videoUrl: 'https://v.animethemes.moe/test.webm',
+            audioUrl: 'https://a.animethemes.moe/test.ogg',
+            episodes: '1-12',
+            source: 'AnimeThemes',
+            url: 'https://animethemes.moe/anime/test',
+          },
+        ],
+        videos: [
+          {
+            title: 'Music video',
+            source: 'Jikan',
+            trailer: {
+              site: 'youtube',
+              url: 'https://www.youtube.com/watch?v=music123',
+              embedUrl: 'https://www.youtube-nocookie.com/embed/music123',
+              thumbnail: null,
+            },
+          },
+        ],
+        artwork: [
+          {
+            url: '/images/frieren.jpg',
+            thumbnail: '/images/frieren.jpg',
+            label: 'Cover artwork',
+            source: 'Jikan',
+          },
+        ],
+        sources: [
+          { name: 'AnimeThemes', status: 'ok' },
+          { name: 'Jikan', status: 'ok' },
+        ],
+      },
+    });
+  });
+  await page.route('https://a.animethemes.moe/**', (route) => route.abort());
+  await page.route('https://v.animethemes.moe/**', (route) => route.abort());
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Meet your next favorite' }).click();
+  await expect(page.getByRole('link', { name: 'Trailer on YouTube AniList' })).toHaveAttribute(
+    'href',
+    'https://www.youtube.com/watch?v=abc123',
+  );
+  expect(extrasRequests).toBe(0);
+  await expect(page.locator('audio,video')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Find songs, videos & artwork' }).click();
+  await expect(page.getByText('Opening Song', { exact: true })).toBeVisible();
+  await page.getByRole('heading', { name: 'Openings & endings' }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `test-results/supplemental-${test.info().project.name}.png` });
+  await expect(page.locator('audio,video')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Listen to Opening Song' }).click();
+  await expect(page.locator('audio')).toHaveAttribute('src', 'https://a.animethemes.moe/test.ogg');
+  await page.getByRole('button', { name: 'Stop theme playback' }).click();
+  await expect(page.locator('audio')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Watch Opening Song' }).click();
+  await expect(page.locator('video')).toHaveAttribute('src', 'https://v.animethemes.moe/test.webm');
+  await expect(page.getByRole('link', { name: 'Open artwork 2 from Jikan' })).toHaveAttribute(
+    'href',
+    '/images/frieren.jpg',
+  );
+  const dialog = page.getByRole('dialog');
+  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await expect(page.getByRole('button', { name: 'Close dialog', exact: true })).toBeInViewport();
+  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+});
+test('broader search is opt-in and keeps AniList titles first', async ({ page }) => {
+  const base = {
+    id: 991002,
+    title: 'Primary story',
+    original: 'Primary',
+    format: 'Anime',
+    year: 2024,
+    rating: 8,
+    episodes: '12 episodes',
+    genres: ['Fantasy'],
+    description: 'Story',
+    image: '/images/frieren.jpg',
+    color: '#567456',
+    features: [1, 0.5, 0.4, 0.4, 0.6, 1],
+    source: 'AniList',
+  };
+  await page.route('**/api/search?*', (route) => {
+    const broad = new URL(route.request().url()).searchParams.get('broaden') === '1';
+    return route.fulfill({
+      json: {
+        items: broad
+          ? [base, { ...base, id: 991003, title: 'Secondary story', source: 'Jikan' }]
+          : [base],
+        source: broad ? 'AniList + Jikan' : 'AniList',
+      },
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'Search stories' }).fill('test');
+  await page.getByRole('button', { name: 'Search all stories' }).click();
+  await expect(page.locator('.title-card')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Broaden with Jikan' }).click();
+  await expect(page.locator('.title-card')).toHaveCount(2);
+  await expect(page.locator('.card-title').first()).toHaveText('Primary story');
+});

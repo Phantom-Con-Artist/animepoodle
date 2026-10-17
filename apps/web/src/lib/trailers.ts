@@ -1,10 +1,11 @@
-import { type MediaDetails, type Title, type Trailer } from '@animepoodle/shared';
+import { mediaIdentity, type MediaDetails, type Title, type Trailer } from '@animepoodle/shared';
 export async function fetchStoryDetails(
   item: Title,
   page: number,
   signal: AbortSignal,
 ): Promise<MediaDetails> {
-  const mediaId = item.anilistId ? -item.anilistId : item.id;
+  const { anilistId, malId } = mediaIdentity(item);
+  const mediaId = anilistId ? -anilistId : malId || item.id;
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL || ''}/api/media/${mediaId}?format=${item.format}&page=${page}`,
     { signal },

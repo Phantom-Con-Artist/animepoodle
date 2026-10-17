@@ -36,12 +36,12 @@ export default function Modal({
         if (e.target === ref.current) onClose();
       }}
     >
-      <div className="modal-inner">
+      <div className="modal-close-bar">
         <button onClick={onClose} className="icon-button close-button" aria-label="Close dialog">
           <X size={20} />
         </button>
-        {children}
       </div>
+      <div className="modal-inner">{children}</div>
     </dialog>
   );
 }

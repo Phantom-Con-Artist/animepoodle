@@ -1,5 +1,12 @@
-import { type Title, type Taste, type MediaDetails, type Trailer } from '@animepoodle/shared';
-const query = `query Discover($search:String!,$type:MediaType,$country:CountryCode){Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,isAdult:false,sort:SEARCH_MATCH){id idMal title{english romaji native}type countryOfOrigin startDate{year}averageScore episodes chapters status genres description(asHtml:false)coverImage{large color}}}}`;
+import {
+  type Title,
+  type Taste,
+  type MediaDetails,
+  type Trailer,
+  type MediaLink,
+} from '@animepoodle/shared';
+import { httpsUrl, youtubeUrl } from './urls.js';
+const query = `query Discover($search:String!,$type:MediaType,$country:CountryCode){Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,isAdult:false,sort:SEARCH_MATCH){id idMal title{english romaji native}type countryOfOrigin startDate{year}averageScore episodes chapters status genres description(asHtml:false)bannerImage coverImage{large color}}}}`;
 interface AniMedia {
   id: number;
   idMal: number | null;
@@ -13,6 +20,7 @@ interface AniMedia {
   status: string;
   genres: string[];
   description: string | null;
+  bannerImage?: string | null;
   coverImage: { large: string; color: string | null };
 }
 export class CatalogError extends Error {
@@ -38,6 +46,9 @@ export function normalizeMedia(d: AniMedia): Title {
   return {
     id: d.idMal || -d.id,
     anilistId: d.id,
+    malId: d.idMal || undefined,
+    source: 'AniList',
+    bannerImage: httpsUrl(d.bannerImage),
     title: d.title.english || d.title.romaji,
     original: d.title.native || d.title.romaji,
     format:
@@ -160,7 +171,8 @@ async function requestAniList(document: string, variables: Record<string, unknow
 }
 const detailsQuery = `query StoryExtras($id:Int,$idMal:Int,$type:MediaType!,$page:Int!){
   Media(id:$id,idMal:$idMal,type:$type,isAdult:false){
-    id trailer{id site thumbnail}
+    id idMal bannerImage trailer{id site thumbnail}
+    externalLinks{site url isDisabled}
     reviews(page:$page,perPage:3,sort:RATING_DESC){
       pageInfo{currentPage hasNextPage}
       nodes{id summary score rating ratingAmount user{name}}
@@ -218,6 +230,9 @@ export async function getMediaDetails(
     const media = data.data.Media;
     const value: MediaDetails = {
       anilistId: media.id,
+      malId: media.idMal || null,
+      bannerImage: httpsUrl(media.bannerImage),
+      youtubeLinks: normalizeYoutubeLinks(media.trailer, media.externalLinks || []),
       url: `https://anilist.co/${type === 'ANIME' ? 'anime' : 'manga'}/${media.id}`,
       trailer: normalizeTrailer(media.trailer),
       reviews: (media.reviews?.nodes || []).map(
@@ -253,4 +268,22 @@ export async function getMediaDetails(
   } finally {
     detailsPending.delete(key);
   }
+}
+
+export function normalizeYoutubeLinks(
+  trailer: { site?: string; id?: string } | null,
+  links: { site?: string; url?: string; isDisabled?: boolean }[],
+): MediaLink[] {
+  const result: MediaLink[] = [];
+  if (trailer?.site === 'youtube') {
+    const normalized = normalizeTrailer(trailer);
+    if (normalized)
+      result.push({ label: 'Trailer on YouTube', url: normalized.url, source: 'AniList' });
+  }
+  for (const link of links) {
+    if (link.isDisabled) continue;
+    const url = youtubeUrl(link.url);
+    if (url) result.push({ label: link.site || 'YouTube', url, source: 'AniList' });
+  }
+  return Array.from(new Map(result.map((link) => [link.url, link])).values());
 }

@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { catalog, formats } from '@animepoodle/shared';
-import { searchAniList, getMediaDetails, CatalogError } from './anilist.js';
+import { getMediaDetails, CatalogError } from './anilist.js';
+import { searchCatalog, getSupplementalMedia } from './catalog-service.js';
 export const app = new Hono();
 app.use('/api/*', cors({ origin: 'http://localhost:3000' }));
 app.get('/api/health', (c) => c.json({ ok: true, service: 'animepoodle-api' }));
@@ -24,7 +25,7 @@ app.get('/api/search', async (c) => {
   if (!formats.includes(format as (typeof formats)[number]))
     return c.json({ error: 'Unknown format.' }, 400);
   try {
-    return c.json({ items: await searchAniList(q, format), source: 'AniList' });
+    return c.json(await searchCatalog(q, format, c.req.query('broaden') === '1'));
   } catch (error) {
     if (error instanceof CatalogError) {
       if (error.status === 429) c.header('Retry-After', String(error.retryAfter));
@@ -60,5 +61,24 @@ app.get('/api/media/:id', async (c) => {
       503,
     );
   }
+});
+app.get('/api/extras', async (c) => {
+  const format = c.req.query('format');
+  if (!format || format === 'All' || !formats.includes(format as (typeof formats)[number]))
+    return c.json({ error: 'Choose a story format.' }, 400);
+  const rawAni = c.req.query('anilistId');
+  const rawMal = c.req.query('malId');
+  const valid = (id: string | undefined) =>
+    id === undefined ||
+    (/^[1-9]\d*$/.test(id) && Number.isSafeInteger(Number(id)) && Number(id) <= 2147483647);
+  if ((!rawAni && !rawMal) || !valid(rawAni) || !valid(rawMal))
+    return c.json({ error: 'Provide a valid AniList or MyAnimeList ID.' }, 400);
+  return c.json(
+    await getSupplementalMedia(
+      rawAni ? Number(rawAni) : undefined,
+      rawMal ? Number(rawMal) : undefined,
+      format,
+    ),
+  );
 });
 app.notFound((c) => c.json({ error: 'Not found' }, 404));

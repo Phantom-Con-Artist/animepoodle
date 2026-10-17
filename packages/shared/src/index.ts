@@ -12,6 +12,9 @@ export type Taste = [number, number, number, number, number, number];
 export interface Title {
   id: number;
   anilistId?: number;
+  malId?: number;
+  source?: 'AniList' | 'Jikan';
+  bannerImage?: string | null;
   title: string;
   original: string;
   format: Format;
@@ -55,6 +58,7 @@ export const catalog: Title[] = [
   {
     id: 52991,
     anilistId: 154587,
+    malId: 52991,
     title: 'Frieren: Beyond Journey’s End',
     original: '葬送のフリーレン',
     format: 'Anime',
@@ -71,6 +75,7 @@ export const catalog: Title[] = [
   {
     id: 52299,
     anilistId: 151807,
+    malId: 52299,
     title: 'Solo Leveling',
     original: '俺だけレベルアップな件',
     format: 'Anime',
@@ -87,6 +92,7 @@ export const catalog: Title[] = [
   {
     id: 40748,
     anilistId: 113415,
+    malId: 40748,
     title: 'Jujutsu Kaisen',
     original: '呪術廻戦',
     format: 'Anime',
@@ -103,6 +109,7 @@ export const catalog: Title[] = [
   {
     id: 16498,
     anilistId: 16498,
+    malId: 16498,
     title: 'Attack on Titan',
     original: '進撃の巨人',
     format: 'Anime',
@@ -119,6 +126,7 @@ export const catalog: Title[] = [
   {
     id: 44511,
     anilistId: 127230,
+    malId: 44511,
     title: 'Chainsaw Man',
     original: 'チェンソーマン',
     format: 'Anime',
@@ -135,6 +143,7 @@ export const catalog: Title[] = [
   {
     id: 50265,
     anilistId: 140960,
+    malId: 50265,
     title: 'Spy × Family',
     original: 'SPY×FAMILY',
     format: 'Anime',
@@ -151,6 +160,7 @@ export const catalog: Title[] = [
   {
     id: 436,
     anilistId: 19,
+    malId: 19,
     title: 'Monster',
     original: 'MONSTER',
     format: 'Anime',
@@ -167,6 +177,7 @@ export const catalog: Title[] = [
   {
     id: 34599,
     anilistId: 97986,
+    malId: 34599,
     title: 'Made in Abyss',
     original: 'メイドインアビス',
     format: 'Anime',
@@ -183,6 +194,7 @@ export const catalog: Title[] = [
   {
     id: 33352,
     anilistId: 21827,
+    malId: 33352,
     title: 'Violet Evergarden',
     original: 'ヴァイオレット・エヴァーガーデン',
     format: 'Anime',
@@ -199,6 +211,7 @@ export const catalog: Title[] = [
   {
     id: 21,
     anilistId: 30013,
+    malId: 13,
     title: 'One Piece',
     original: 'ONE PIECE',
     format: 'Manga',
@@ -215,6 +228,7 @@ export const catalog: Title[] = [
   {
     id: 2,
     anilistId: 30002,
+    malId: 2,
     title: 'Berserk',
     original: 'ベルセルク',
     format: 'Manga',
@@ -231,6 +245,7 @@ export const catalog: Title[] = [
   {
     id: 56805,
     anilistId: 153518,
+    malId: 52701,
     title: 'Delicious in Dungeon',
     original: 'ダンジョン飯',
     format: 'Anime',
@@ -247,6 +262,7 @@ export const catalog: Title[] = [
   {
     id: 121496,
     anilistId: 105398,
+    malId: 121496,
     title: 'Solo Leveling',
     original: '나 혼자만 레벨업',
     format: 'Manhwa',
@@ -263,6 +279,7 @@ export const catalog: Title[] = [
   {
     id: 132214,
     anilistId: 119257,
+    malId: 132214,
     title: 'Omniscient Reader',
     original: '전지적 독자 시점',
     format: 'Manhwa',
@@ -279,6 +296,7 @@ export const catalog: Title[] = [
   {
     id: 119072,
     anilistId: 112275,
+    malId: 140765,
     title: 'Heaven Official’s Blessing',
     original: '天官赐福',
     format: 'Manhua',
@@ -295,6 +313,7 @@ export const catalog: Title[] = [
   {
     id: 42154,
     anilistId: 113260,
+    malId: 40730,
     title: 'Heaven Official’s Blessing',
     original: '天官赐福',
     format: 'Donghua',
@@ -311,6 +330,7 @@ export const catalog: Title[] = [
   {
     id: 37932,
     anilistId: 101972,
+    malId: 37208,
     title: 'Mo Dao Zu Shi',
     original: '魔道祖师',
     format: 'Donghua',
@@ -327,6 +347,7 @@ export const catalog: Title[] = [
   {
     id: 119898,
     anilistId: 119521,
+    malId: 134744,
     title: 'The Legend of the Northern Blade',
     original: '북검전기',
     format: 'Manhwa',
@@ -389,8 +410,61 @@ export interface MediaReview {
 }
 export interface MediaDetails {
   anilistId: number;
+  malId?: number | null;
+  bannerImage?: string | null;
+  youtubeLinks?: MediaLink[];
   url: string;
   trailer: Trailer | null;
   reviews: MediaReview[];
   pageInfo: { currentPage: number; hasNextPage: boolean };
+}
+
+export interface MediaLink {
+  label: string;
+  url: string;
+  source: 'AniList' | 'Jikan';
+}
+export interface Artwork {
+  url: string;
+  thumbnail: string;
+  label: string;
+  source: 'AniList' | 'Jikan' | 'AnimeThemes';
+}
+export interface MediaVideo {
+  title: string;
+  trailer: Trailer;
+  source: 'AniList' | 'Jikan';
+}
+export interface ThemeSong {
+  id: string;
+  label: string;
+  title: string;
+  artists: string[];
+  videoUrl: string | null;
+  audioUrl: string | null;
+  episodes: string | null;
+  source: 'AnimeThemes' | 'Jikan';
+  url: string;
+}
+export interface MediaExtras {
+  themes: ThemeSong[];
+  videos: MediaVideo[];
+  artwork: Artwork[];
+  sources: {
+    name: 'AnimeThemes' | 'Jikan';
+    status: 'ok' | 'partial' | 'unavailable' | 'not-applicable';
+    message?: string;
+  }[];
+}
+export function mediaIdentity(item: Title) {
+  const known = catalog.find(
+    (t) =>
+      t.format === item.format &&
+      t.id === item.id &&
+      (item.anilistId ? t.anilistId === item.anilistId : !item.source && t.title === item.title),
+  );
+  return {
+    anilistId: item.anilistId || known?.anilistId,
+    malId: item.malId || known?.malId || (item.id > 0 ? item.id : undefined),
+  };
 }

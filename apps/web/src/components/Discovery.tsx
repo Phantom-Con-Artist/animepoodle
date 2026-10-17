@@ -189,7 +189,7 @@ export default function Discovery() {
     if (pool.length) setSelected(pool[Math.floor(Math.random() * pool.length)].item);
     else setToast('Try another format for a fresh discovery.');
   }
-  async function liveSearch() {
+  async function liveSearch(broaden = false) {
     if (query.trim().length < 2) {
       setLiveStatus('Type at least two characters to search the wider catalog.');
       return;
@@ -201,7 +201,7 @@ export default function Discovery() {
     setLiveStatus('');
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ''}/api/search?q=${encodeURIComponent(query.trim())}&format=${format}`,
+        `${process.env.NEXT_PUBLIC_API_URL || ''}/api/search?q=${encodeURIComponent(query.trim())}&format=${format}${broaden ? '&broaden=1' : ''}`,
         { signal: controller.signal },
       );
       if (!res.headers.get('content-type')?.includes('application/json')) {
@@ -212,7 +212,9 @@ export default function Discovery() {
       if (!controller.signal.aborted) {
         setLive(data.items);
         setSource(data.source);
-        setLiveStatus(data.items.length ? '' : 'No live results found. Try a different title.');
+        setLiveStatus(
+          data.notice || (data.items.length ? '' : 'No live results found. Try a different title.'),
+        );
       }
     } catch (e) {
       if (!controller.signal.aborted)
@@ -606,6 +608,15 @@ export default function Discovery() {
                     : `Search all ${format === 'All' ? 'stories' : format.toLowerCase()}`}
                   <ArrowUpRight size={14} />
                 </button>
+                {live && format !== 'Donghua' && (
+                  <button
+                    className="broaden-search"
+                    disabled={loading}
+                    onClick={() => void liveSearch(true)}
+                  >
+                    Broaden with Jikan <ArrowUpRight size={14} />
+                  </button>
+                )}
               </div>
             )}
             {liveStatus && (
