@@ -15,7 +15,7 @@ import {
   validSeason,
 } from './browse.js';
 import { hypeApp, type HypeBindings } from './hype';
-import { readApp, setPublicOrigin } from './mangadex.js';
+import { readApp, setBlocklist, setPublicOrigin } from './mangadex.js';
 export const app = new Hono<{ Bindings: HypeBindings }>();
 app.use(
   '/api/*',
@@ -23,6 +23,11 @@ app.use(
 );
 app.use('/api/*', async (c, next) => {
   setPublicOrigin(new URL(c.req.url).origin);
+  const env = c.env as Record<string, string | undefined> | undefined;
+  setBlocklist(
+    env?.READ_BLOCKLIST ??
+      (typeof process !== 'undefined' ? process.env.READ_BLOCKLIST : undefined),
+  );
   await next();
 });
 app.route('/api/hype', hypeApp);

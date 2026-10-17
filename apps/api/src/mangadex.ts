@@ -131,6 +131,7 @@ export function toChapter(c: MdChapter): ChapterInfo {
     groups: c.relationships
       .filter((r) => r.type === 'scanlation_group' && r.attributes?.name)
       .map((r) => r.attributes!.name!),
+    groupIds: c.relationships.filter((r) => r.type === 'scanlation_group').map((r) => r.id),
   };
 }
 
@@ -204,6 +205,22 @@ let publicOrigin = '';
 export const setPublicOrigin = (origin: string) => {
   publicOrigin ||= origin;
 };
+/**
+ * Removal requests: MangaDex group, series or chapter IDs from READ_BLOCKLIST (comma or
+ * space separated). Anything listed disappears from lists, search and the reader.
+ */
+let blockSource = '';
+let blocklist = new Set<string>();
+export function setBlocklist(value: string | undefined) {
+  if ((value || '') === blockSource) return;
+  blockSource = value || '';
+  blocklist = new Set(blockSource.split(/[\s,]+/).filter(mangaDexId));
+}
+export const isBlocked = (...ids: (string | undefined)[]) =>
+  blocklist.size > 0 && ids.some((id) => !!id && blocklist.has(id));
+const chapterBlocked = (c: ChapterInfo, mangaId?: string) =>
+  isBlocked(c.id, mangaId, ...(c.groupIds || []));
+const visibleTitles = (items: Title[]) => items.filter((t) => !isBlocked(t.mangadexId));
 export const coverUrl = (mangaId: string, file: string) =>
   `${publicOrigin}/api/read/cover?u=${encodeURIComponent(`https://uploads.mangadex.org/covers/${mangaId}/${file}.512.jpg`)}`;
 
@@ -259,7 +276,10 @@ const doujinshi = (m: MdManga) =>
 
 const searchMemo = memo<Title[]>(600000);
 /** Series only MangaDex has (no AniList or MAL link), for search to add after AniList's. */
-export function searchMangaDex(q: string, format: string) {
+export async function searchMangaDex(q: string, format: string) {
+  return visibleTitles(await searchTitles(q, format));
+}
+function searchTitles(q: string, format: string) {
   return searchMemo(`${format}:${q.toLowerCase()}`, async () => {
     if (!languagesFor[format]) return [];
     const data = await md<{ data: MdManga[] }>(
@@ -273,7 +293,10 @@ export function searchMangaDex(q: string, format: string) {
 }
 const latestMemo = memo<Title[]>(600000);
 /** Series with the newest uploads in a language, for the Home rail. */
-export function latestMangaDex(format: string, language: string) {
+export async function latestMangaDex(format: string, language: string) {
+  return visibleTitles(await latestTitles(format, language));
+}
+function latestTitles(format: string, language: string) {
   return latestMemo(`${format}:${language}`, async () => {
     const data = await md<{ data: MdManga[] }>(
       `/manga?${listQuery(format)}&availableTranslatedLanguage[]=${language}&order[latestUploadedChapter]=desc`,
@@ -478,7 +501,10 @@ readApp.get('/series', async (c) => {
   const direct = c.req.query('md');
   if (mangaDexId(direct)) {
     try {
-      return cached({ series: toSeries(await mangaById(direct!)) }, 21600);
+      return cached(
+        { series: isBlocked(direct!) ? null : toSeries(await mangaById(direct!)) },
+        21600,
+      );
     } catch (error) {
       return fail(error);
     }
@@ -486,7 +512,8 @@ readApp.get('/series', async (c) => {
   if ((!anilist && !mal) || !titles?.length)
     return c.json({ error: 'A title and an AniList or MAL ID are needed.' }, 400);
   try {
-    return cached({ series: await findSeries(anilist, mal, titles) }, 21600);
+    const series = await findSeries(anilist, mal, titles);
+    return cached({ series: series && !isBlocked(series.id) ? series : null }, 21600);
   } catch (error) {
     return fail(error);
   }
@@ -498,7 +525,13 @@ readApp.get('/chapters/:id', async (c) => {
   if (!mangaDexId(id) || !lang || !Number.isInteger(offset) || offset < 0 || offset > 9900)
     return c.json({ error: 'Invalid chapter list request.' }, 400);
   try {
-    return cached(await chapterList(id, lang, offset), 300);
+    if (isBlocked(id)) return cached({ chapters: [], total: 0, offset, limit: 100 }, 300);
+    const list = await chapterList(id, lang, offset);
+    const chapters = list.chapters.filter((ch) => !chapterBlocked(ch));
+    return cached(
+      { ...list, chapters, total: list.total - (list.chapters.length - chapters.length) },
+      300,
+    );
   } catch (error) {
     return fail(error);
   }
@@ -508,7 +541,9 @@ readApp.get('/index/:id', async (c) => {
   const lang = language(c.req.query('lang'));
   if (!mangaDexId(id) || !lang) return c.json({ error: 'Invalid chapter index request.' }, 400);
   try {
-    return cached(await chapterIndex(id, lang), 300);
+    if (isBlocked(id)) return cached({ chapters: [] }, 300);
+    const index = await chapterIndex(id, lang);
+    return cached({ chapters: index.chapters.filter((ch) => !isBlocked(ch.id)) }, 300);
   } catch (error) {
     return fail(error);
   }
@@ -519,7 +554,17 @@ readApp.get('/pages/:id', async (c) => {
   if (!mangaDexId(id)) return c.json({ error: 'Invalid chapter.' }, 400);
   try {
     // Page server addresses expire after about 15 minutes, so browsers keep these briefly.
+    if (isBlocked(id))
+      return c.json(
+        { error: 'This chapter was removed at the request of its translators or owners.' },
+        451,
+      );
     const data = await chapterPages(id, quality);
+    if (chapterBlocked(data.chapter, data.mangaId))
+      return c.json(
+        { error: 'This chapter was removed at the request of its translators or owners.' },
+        451,
+      );
     return c.json(data, { headers: { 'Cache-Control': 'private, max-age=300' } });
   } catch (error) {
     return fail(error);
@@ -533,7 +578,11 @@ readApp.get('/updates', async (c) => {
     return c.json({ error: 'Invalid update check.' }, 400);
   const floor = Date.now() - 30 * 86400000;
   try {
-    return cached(await chapterUpdates(ids, lang, new Date(Math.max(+since, floor))), 600);
+    const data = await chapterUpdates(ids, lang, new Date(Math.max(+since, floor)));
+    return cached(
+      { ...data, updates: data.updates.filter((u) => !chapterBlocked(u.latest, u.mangaId)) },
+      600,
+    );
   } catch (error) {
     return fail(error);
   }
@@ -618,6 +667,7 @@ readApp.get('/title/:id', async (c) => {
   const id = c.req.param('id');
   if (!mangaDexId(id)) return c.json({ error: 'Invalid MangaDex ID.' }, 400);
   try {
+    if (isBlocked(id)) return c.json({ error: 'This series isn’t available here.' }, 404);
     const media = mangaDexTitle(await mangaById(id));
     const details: MediaDetails = {
       anilistId: 0,

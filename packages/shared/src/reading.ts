@@ -23,6 +23,8 @@ export interface ChapterInfo {
   externalUrl: string | null;
   readableAt: string;
   groups: string[];
+  /** MangaDex group IDs, for honouring removal requests. */
+  groupIds?: string[];
 }
 export interface ChapterListResponse {
   chapters: ChapterInfo[];

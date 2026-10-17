@@ -7,16 +7,24 @@ export const metadata: Metadata = {
 
 const site = [
   {
-    title: 'We help you find things, we don’t host them',
-    body: 'animepoodle shows information about anime, manga, manhwa, manhua and Chinese animation. We don’t host or link to episodes, chapters or scans. Use official services to watch or read.',
+    title: 'Watch elsewhere, read here, never pay',
+    body: 'animepoodle shows information about anime, manga, manhwa, manhua and Chinese animation, and points you to official places to watch. We don’t host episodes or chapters. No sign-in, no ads, nothing for sale.',
+  },
+  {
+    title: 'Where chapters come from',
+    body: 'Chapters you read here come from MangaDex, and each one credits the translation group that shared it. Official chapters open on the publisher’s own site. Light novel text has no open source, so we link to official releases instead. If you can, support the official release too.',
+  },
+  {
+    title: 'Removal requests',
+    body: 'Translated or own a chapter and want it gone from animepoodle? Open an issue on our GitHub page with the MangaDex link, and we’ll remove it, whether or not it stays on MangaDex.',
   },
   {
     title: 'Where the information comes from',
-    body: 'Titles, synopses, scores, characters, trailers and AniList reviews come from AniList. MyAnimeList reviews, forum threads and extra artwork come from MyAnimeList through Jikan. Opening and ending songs come from AnimeThemes. Reviews and threads belong to the people who wrote them. We show short excerpts and link to the full text.',
+    body: 'Titles, synopses, scores, characters, trailers and AniList reviews come from AniList; series AniList doesn’t list, and chapters, come from MangaDex. MyAnimeList reviews, forum threads and extra artwork come from MyAnimeList through Jikan. Opening and ending songs come from AnimeThemes. Reviews and threads belong to the people who wrote them. We show short excerpts and link to the full text.',
   },
   {
     title: 'Your data stays in your browser',
-    body: 'Your library, ratings and taste settings are stored in this browser only. We don’t have accounts and don’t collect them. Clearing your browser data deletes them.',
+    body: 'Your library, ratings, taste settings and reading progress are stored in this browser only. We don’t have accounts and don’t collect them. Clearing your browser data deletes them.',
   },
   {
     title: 'Recommendations are guesses',

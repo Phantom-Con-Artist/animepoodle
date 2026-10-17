@@ -209,3 +209,56 @@ test('MangaDex series become catalog titles; only MangaDex-only ones join search
     globalThis.fetch = original;
   }
 });
+
+test('removal requests hide a group’s chapters everywhere', async () => {
+  const original = globalThis.fetch;
+  const chapter = (id: number, group: number) => ({
+    id: uuid(id),
+    attributes: {
+      chapter: String(id),
+      volume: null,
+      title: null,
+      translatedLanguage: 'en',
+      pages: 3,
+      externalUrl: null,
+      readableAt: '2026-10-01T00:00:00+00:00',
+    },
+    relationships: [
+      { id: uuid(40), type: 'manga' },
+      { id: uuid(group), type: 'scanlation_group', attributes: { name: `Group ${group}` } },
+    ],
+  });
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('/feed?'))
+      return Response.json({
+        data: [chapter(31, 50), chapter(32, 51)],
+        total: 2,
+        offset: 0,
+        limit: 100,
+      });
+    if (u.endsWith(`/chapter/${uuid(32)}?includes[]=scanlation_group`))
+      return Response.json({ data: chapter(32, 51) });
+    if (u.endsWith(`/at-home/server/${uuid(32)}`))
+      return Response.json({
+        baseUrl: 'https://n.mangadex.network',
+        chapter: { hash, data: ['a.jpg'], dataSaver: ['a.jpg'] },
+      });
+    throw new Error(`Unexpected ${u}`);
+  };
+  process.env.READ_BLOCKLIST = `${uuid(51)}, not-an-id`;
+  try {
+    const list = await (await app.request(`/api/read/chapters/${uuid(40)}?lang=en`)).json();
+    assert.deepEqual(
+      list.chapters.map((c: { id: string }) => c.id),
+      [uuid(31)],
+    );
+    assert.equal(list.total, 1);
+    assert.equal((await app.request(`/api/read/pages/${uuid(32)}`)).status, 451);
+  } finally {
+    delete process.env.READ_BLOCKLIST;
+    globalThis.fetch = original;
+  }
+  // Clearing the setting brings them back.
+  assert.equal((await app.request(`/api/read/chapters/${uuid(40)}?lang=en`)).status, 200);
+});

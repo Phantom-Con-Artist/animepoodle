@@ -731,8 +731,8 @@ function Story({ params }: { params: StoryParams }) {
             </section>
           )}
           <p className="story-disclaimer">
-            We point you to official places to watch and read. We never host episodes or chapters
-            ourselves.
+            We point you to official places to watch and read. Chapters read here come from MangaDex
+            and its translation groups; we never host episodes or chapters ourselves.
           </p>
         </aside>
       </div>
