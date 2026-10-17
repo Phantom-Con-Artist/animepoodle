@@ -5828,3 +5828,38 @@ img[data-loaded]:not(.reader-page > img) {
     font-size: 11px;
   }
 }
+
+/* Edge-to-edge bars line up with the page gutter at every width. */
+:root {
+  --gutter: 16px;
+}
+@media (min-width: 640px) {
+  :root {
+    --gutter: 24px;
+  }
+}
+@media (min-width: 1280px) {
+  :root {
+    --gutter: 40px;
+  }
+  .page {
+    padding-top: 20px;
+    padding-bottom: 32px;
+  }
+}
+@media (min-width: 1680px) {
+  :root {
+    --gutter: 56px;
+  }
+}
+.story-nav {
+  margin-left: calc(var(--gutter) * -1);
+  margin-right: calc(var(--gutter) * -1);
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
+}
+@media (min-width: 640px) {
+  .page {
+    padding-bottom: 32px;
+  }
+}
