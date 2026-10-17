@@ -46,10 +46,7 @@ export default function ForYouPage() {
           </button>
         ))}
       </div>
-      <h2 className="results-head">
-        Your top {section.plural} matches
-        <span>{engine.engine}</span>
-      </h2>
+      <h2 className="results-head">Your top {section.plural} matches</h2>
       {ranked.length ? (
         <TitleGrid>
           {ranked.map((r) => (
