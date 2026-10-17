@@ -18,10 +18,10 @@ const firstSentences = (text: string) => {
   const parts = text.replace(/\s+/g, ' ').split(/(?<=[.!?])\s/);
   let out = '';
   for (const p of parts) {
-    if ((out + p).length > 260) break;
+    if ((out + p).length > 480) break;
     out += (out ? ' ' : '') + p;
   }
-  return out || text.slice(0, 260);
+  return out || text.slice(0, 480);
 };
 
 /**

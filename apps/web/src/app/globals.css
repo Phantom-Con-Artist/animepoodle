@@ -2225,9 +2225,14 @@ kbd {
   overflow-wrap: break-word;
 }
 .highlight-copy > p {
-  color: var(--muted);
-  font-size: 15px;
-  max-width: 60ch;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 62ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
 }
 .highlight-actions {
   display: flex;
@@ -4344,7 +4349,10 @@ a.cast-person:hover strong {
   .highlight-copy > p {
     grid-area: text;
     align-self: center;
-    font-size: 16px;
+    max-width: none;
+    font-size: clamp(17px, 1.35vw, 21px);
+    line-height: 1.55;
+    -webkit-line-clamp: 7;
   }
   .highlight-actions {
     grid-area: actions;
