@@ -17,7 +17,7 @@ import {
   normalizeMedia,
   requestAniList,
   type AniMedia,
-} from './anilist.js';
+} from './anilist';
 
 /** Small TTL cache with request coalescing, shared by every endpoint in this module. */
 function memo<T>(ttl: number, limit = 120) {

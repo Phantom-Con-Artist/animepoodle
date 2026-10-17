@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { editDistance, parseSearchTerms } from './search-terms.js';
+import { editDistance, parseSearchTerms } from './search-terms';
 
 const vocab = {
   genres: ['Comedy', 'Psychological', 'Romance', 'Slice of Life', 'Sports', 'Sci-Fi'],

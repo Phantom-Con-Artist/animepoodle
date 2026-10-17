@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { app } from './app.js';
-import { mangaDexTitle, parseCoverUrl, parsePageUrl } from './mangadex.js';
+import { app } from './app';
+import { mangaDexTitle, parseCoverUrl, parsePageUrl } from './mangadex';
 
 type MdManga = Parameters<typeof mangaDexTitle>[0];
 

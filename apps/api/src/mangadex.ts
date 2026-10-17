@@ -10,7 +10,7 @@ import {
   type ReadingSeries,
   type Title,
 } from '@animepoodle/shared';
-import { CatalogError, featuresFor } from './anilist.js';
+import { CatalogError, featuresFor } from './anilist';
 
 /**
  * MangaDex reading. MangaDex sends no CORS headers and breaks hotlinked images, so every

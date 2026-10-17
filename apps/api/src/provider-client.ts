@@ -1,4 +1,4 @@
-import { CatalogError } from './anilist.js';
+import { CatalogError } from './anilist';
 const agent = 'animepoodle/1.0 (https://github.com/Phantom-Con-Artist/animepoodle)';
 /** Bounded warm-instance cache, request coalescing, pacing and provider cooldowns. */
 export function createProviderClient(name: string, base: string, ttl: number, spacing = 0) {

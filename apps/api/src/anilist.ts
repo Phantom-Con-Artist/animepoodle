@@ -7,15 +7,15 @@ import {
   type MediaProfile,
   type SearchMatches,
 } from '@animepoodle/shared';
-import { httpsUrl, youtubeUrl } from './urls.js';
-import { englishSynonym } from './english-title.js';
+import { httpsUrl, youtubeUrl } from './urls';
+import { englishSynonym } from './english-title';
 import {
   editDistance,
   normalizeTerm,
   parseSearchTerms,
   type SearchTerms,
   type SearchVocabulary,
-} from './search-terms.js';
+} from './search-terms';
 export const mediaFields = `id idMal title{english romaji native} type format status countryOfOrigin tags{name rank isAdult isGeneralSpoiler isMediaSpoiler} startDate{year} season seasonYear popularity averageScore episodes chapters genres synonyms description(asHtml:false) bannerImage coverImage{large extraLarge color} trailer{id site}`;
 // Titles always; studios for anime; the genre/tag vocabulary only until it is cached.
 const query = `query Search($search:String!,$type:MediaType,$country:CountryCode,$status:MediaStatus,$studios:Boolean!,$studioSearch:String,$vocab:Boolean!){
@@ -58,7 +58,7 @@ export interface AniMedia {
 export class CatalogError extends Error {
   constructor(
     message: string,
-    public status: 404 | 429 | 503 = 503,
+    public status: 404 | 429 | 502 | 503 = 503,
     public retryAfter = 60,
   ) {
     super(message);
@@ -323,6 +323,10 @@ export async function requestAniList(document: string, variables: Record<string,
   }
   if (res.status === 404)
     throw new CatalogError('No AniList details are available for this story yet.', 404);
+  // Cloudflare's shared outbound addresses can be blocked by AniList. 502 tells the site to
+  // run the request from the visitor's own browser instead (AniList allows that).
+  if (res.status === 403)
+    throw new CatalogError('AniList is blocking this server. Trying from your browser…', 502);
   if (!res.ok) {
     console.warn(`AniList answered ${res.status} ${res.headers.get('cf-ray') || ''}`.trim());
     throw new CatalogError('AniList is unavailable right now. Please try again shortly.');

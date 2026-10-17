@@ -1,10 +1,10 @@
 import { catalog } from '../../../tests/fixtures/catalog';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { app } from './app.js';
-import { mergeCatalog } from './catalog-service.js';
+import { app } from './app';
+import { mergeCatalog } from './catalog-service';
 import { mediaIdentity, type Title } from '@animepoodle/shared';
-import { normalizeYoutubeLinks } from './anilist.js';
+import { normalizeYoutubeLinks } from './anilist';
 const aniMedia = (id: number, malId: number, title: string) => ({
   id,
   idMal: malId,

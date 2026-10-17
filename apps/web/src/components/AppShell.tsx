@@ -1,4 +1,5 @@
 'use client';
+import '@/lib/api-fallback';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';

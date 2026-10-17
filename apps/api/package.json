@@ -2,6 +2,9 @@
   "name": "@animepoodle/api",
   "private": true,
   "type": "module",
+  "exports": {
+    "./browser": "./src/browser.ts"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",

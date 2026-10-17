@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { app } from './app.js';
+import { app } from './app';
 
 const media = (id: number, title: string, genres = ['Fantasy']) => ({
   id,

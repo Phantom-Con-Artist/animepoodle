@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { app } from './app.js';
-import { parseAnimeOfTheYear } from './browse.js';
+import { app } from './app';
+import { parseAnimeOfTheYear } from './browse';
 import { currentSeason, displayTitle, uniqueTitles, type Title } from '@animepoodle/shared';
 import { catalog } from '../../../tests/fixtures/catalog';
 

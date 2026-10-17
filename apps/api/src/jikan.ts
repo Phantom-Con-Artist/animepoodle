@@ -5,9 +5,9 @@ import {
   type ThemeSong,
   type CommunityResponse,
 } from '@animepoodle/shared';
-import { CatalogError, featuresFor, normalizeTrailer } from './anilist.js';
-import { createProviderClient } from './provider-client.js';
-import { httpsUrl } from './urls.js';
+import { CatalogError, featuresFor, normalizeTrailer } from './anilist';
+import { createProviderClient } from './provider-client';
+import { httpsUrl } from './urls';
 const request = createProviderClient('Jikan', 'https://api.jikan.moe/v4', 900000, 1100);
 interface JikanItem {
   mal_id: number;

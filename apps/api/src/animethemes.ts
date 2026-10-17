@@ -1,7 +1,7 @@
 import { type Artwork, type ThemeSong } from '@animepoodle/shared';
-import { CatalogError } from './anilist.js';
-import { createProviderClient } from './provider-client.js';
-import { httpsUrl } from './urls.js';
+import { CatalogError } from './anilist';
+import { createProviderClient } from './provider-client';
+import { httpsUrl } from './urls';
 const request = createProviderClient('AnimeThemes', 'https://api.animethemes.moe', 3600000);
 interface ThemeAnime {
   slug: string;

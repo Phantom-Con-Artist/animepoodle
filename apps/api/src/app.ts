@@ -1,9 +1,9 @@
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import { formats, releaseStatuses, type Format } from '@animepoodle/shared';
-import { getMediaDetails, CatalogError } from './anilist.js';
-import { searchCatalog, getSupplementalMedia, discoverCatalog } from './catalog-service.js';
-import { getJikanCommunity } from './jikan.js';
+import { getMediaDetails, CatalogError } from './anilist';
+import { searchCatalog, getSupplementalMedia, discoverCatalog } from './catalog-service';
+import { getJikanCommunity } from './jikan';
 import {
   browseAniList,
   browseSorts,
@@ -13,9 +13,9 @@ import {
   getStudio,
   validKinds,
   validSeason,
-} from './browse.js';
+} from './browse';
 import { hypeApp, type HypeBindings } from './hype';
-import { readApp, setBlocklist, setPublicOrigin } from './mangadex.js';
+import { readApp, setBlocklist, setPublicOrigin } from './mangadex';
 export const app = new Hono<{ Bindings: HypeBindings }>();
 app.use(
   '/api/*',

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { englishSynonym } from './english-title.js';
-import { normalizeMedia, type AniMedia } from './anilist.js';
+import { englishSynonym } from './english-title';
+import { normalizeMedia, type AniMedia } from './anilist';
 import { withEnglishTitle } from '@animepoodle/shared';
 
 // Real AniList entries without an English title.

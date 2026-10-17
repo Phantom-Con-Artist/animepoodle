@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server';
-import { app } from './app.js';
-import { localHypeBindings } from './hype-dev.js';
+import { app } from './app';
+import { localHypeBindings } from './hype-dev';
 const hype = localHypeBindings();
 const port = Number(process.env.PORT || 8787);
 serve({ fetch: (request) => app.fetch(request, hype), hostname: '127.0.0.1', port }, (info) =>

@@ -1,8 +1,8 @@
 import { type Title, type MediaExtras, type SearchMatches } from '@animepoodle/shared';
-import { searchAniListTerms, discoverAniList } from './anilist.js';
-import { searchJikan, getJikanExtras, discoverJikan } from './jikan.js';
-import { getAnimeThemes } from './animethemes.js';
-import { searchMangaDex } from './mangadex.js';
+import { searchAniListTerms, discoverAniList } from './anilist';
+import { searchJikan, getJikanExtras, discoverJikan } from './jikan';
+import { getAnimeThemes } from './animethemes';
+import { searchMangaDex } from './mangadex';
 export function mergeCatalog(primary: Title[], secondary: Title[]): Title[] {
   const merged = new Map<string, Title>();
   for (const item of [...primary, ...secondary]) {
