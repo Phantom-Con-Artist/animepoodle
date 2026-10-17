@@ -347,7 +347,9 @@ export default function CardTrailer({
           </div>,
           document.body,
         )}
+      {/* No trailer, no button: a disabled "No trailer" pill is just clutter. */}
       {showControl &&
+        !unavailable &&
         (trailer && !trailer.embedUrl ? (
           <a
             className="card-trailer-control"

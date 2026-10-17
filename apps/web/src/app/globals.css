@@ -5863,3 +5863,148 @@ img[data-loaded]:not(.reader-page > img) {
     padding-bottom: 32px;
   }
 }
+
+/* Browse: the Filters button leads the type chips on one row. */
+.browse-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.browse-bar .kind-chips {
+  flex: 1;
+  min-width: 0;
+}
+.browse-bar .filters-toggle {
+  flex-shrink: 0;
+  height: 36px;
+  margin: 2px 0 0;
+}
+
+@media (max-width: 639px) {
+  .page-head {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .page-head h1 {
+    font-size: clamp(26px, 8vw, 32px);
+    margin: 0;
+  }
+  .page-head p {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .browse-search {
+    margin-bottom: 10px;
+  }
+  .results-head {
+    margin-bottom: 10px;
+  }
+  /* Browse has its own search box; the header's would be a second one. */
+  .site:has(.browse-page) .header-search {
+    display: none;
+  }
+  .site:has(.browse-page) .site-header-inner {
+    grid-template-areas: 'menu brand actions';
+  }
+  /* Hype points: one slim strip. */
+  .hype-wallet {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 10px;
+    padding: 10px 12px;
+    margin: 10px 0 16px;
+  }
+  .hype-wallet > svg {
+    width: 22px;
+    height: 22px;
+  }
+  .hype-wallet strong {
+    font-size: 16px;
+  }
+  .hype-wallet p {
+    margin: 0;
+    font-size: 12px;
+  }
+  .hype-points {
+    grid-column: 1 / -1;
+    margin: 4px 0 0;
+    gap: 4px;
+  }
+  .hype-points i {
+    flex: 1;
+    width: auto;
+    height: 10px;
+    border-radius: 3px;
+  }
+  .hype-chart-head {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+}
+
+/* Hype chart on phones: score above its +1 button on the right, one compact block. */
+@media (max-width: 639px) {
+  .hype-chart {
+    gap: 8px;
+  }
+  .hype-row {
+    grid-template-columns: 20px 54px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'rank cover title score'
+      'rank cover title button'
+      'details details details details';
+    column-gap: 10px;
+    padding: 10px;
+  }
+  .hype-rank {
+    grid-area: rank;
+    font-size: 16px;
+  }
+  .hype-cover {
+    grid-area: cover;
+  }
+  .hype-title {
+    grid-area: title;
+    align-self: start;
+  }
+  .hype-title a {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 15px;
+    line-height: 1.25;
+  }
+  .hype-title small {
+    margin-top: 3px;
+  }
+  .hype-more {
+    margin-top: 2px;
+  }
+  .hype-score {
+    grid-area: score;
+    align-self: start;
+  }
+  .hype-score strong {
+    font-size: 18px;
+  }
+  .hype-score small {
+    margin-top: 0;
+  }
+  .hype-row > .hype-button {
+    grid-area: button;
+    align-self: end;
+    margin-top: 6px;
+    min-height: 34px;
+    gap: 4px;
+    padding: 4px 9px;
+    font-size: 13px;
+  }
+  .hype-details {
+    grid-area: details;
+  }
+  .hype-details-inner {
+    padding-top: 10px;
+  }
+}

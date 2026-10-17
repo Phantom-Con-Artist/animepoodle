@@ -199,35 +199,36 @@ export default function BrowsePage() {
         </button>
       </form>
 
-      <div className="kind-chips" role="group" aria-label="Type">
+      <div className="browse-bar">
         <button
-          aria-pressed={!kinds.length}
-          className={!kinds.length ? 'selected' : ''}
-          onClick={() => update({ kind: null })}
+          className={`filter-button filters-toggle ${filtersOpen ? 'selected' : ''}`}
+          aria-expanded={filtersOpen}
+          aria-controls="browse-filters"
+          onClick={() => setFiltersOpen((o) => !o)}
         >
-          All types
+          <SlidersHorizontal size={17} />
+          Filters{activeCount ? ` (${activeCount})` : ''}
         </button>
-        {kindOptions.map((k) => (
+        <div className="kind-chips" role="group" aria-label="Type">
           <button
-            key={k}
-            aria-pressed={kinds.includes(k)}
-            className={kinds.includes(k) ? 'selected' : ''}
-            onClick={() => toggleKind(k)}
+            aria-pressed={!kinds.length}
+            className={!kinds.length ? 'selected' : ''}
+            onClick={() => update({ kind: null })}
           >
-            {kindLabel(k)}
+            All types
           </button>
-        ))}
+          {kindOptions.map((k) => (
+            <button
+              key={k}
+              aria-pressed={kinds.includes(k)}
+              className={kinds.includes(k) ? 'selected' : ''}
+              onClick={() => toggleKind(k)}
+            >
+              {kindLabel(k)}
+            </button>
+          ))}
+        </div>
       </div>
-
-      <button
-        className={`filter-button filters-toggle ${filtersOpen ? 'selected' : ''}`}
-        aria-expanded={filtersOpen}
-        aria-controls="browse-filters"
-        onClick={() => setFiltersOpen((o) => !o)}
-      >
-        <SlidersHorizontal size={17} />
-        Filters{activeCount ? ` (${activeCount})` : ''}
-      </button>
       <div id="browse-filters" className={`browse-filters ${filtersOpen ? 'open' : ''}`}>
         <label>
           Year
