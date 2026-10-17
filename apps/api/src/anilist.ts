@@ -6,6 +6,7 @@ import {
   type MediaLink,
   type MediaProfile,
   type SearchMatches,
+  countOf,
 } from '@animepoodle/shared';
 import { httpsUrl, youtubeUrl } from './urls';
 import { englishSynonym } from './english-title';
@@ -125,12 +126,12 @@ export function normalizeMedia(d: AniMedia): Title {
     episodes:
       d.type === 'MANGA'
         ? d.chapters
-          ? `${d.chapters} chapters`
+          ? countOf(d.chapters, 'chapter')
           : d.status === 'RELEASING'
             ? 'Ongoing'
             : 'Chapters unknown'
         : d.episodes
-          ? `${d.episodes} episodes`
+          ? countOf(d.episodes, 'episode')
           : 'Episodes unknown',
     genres: d.genres || [],
     description: (d.description || 'No synopsis available yet.')

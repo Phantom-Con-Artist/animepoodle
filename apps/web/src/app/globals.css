@@ -6074,3 +6074,98 @@ img[data-loaded]:not(.reader-page > img) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Phone headings: one scale, with room to breathe ─────── */
+@media (max-width: 639px) {
+  h1,
+  .page-head h1 {
+    font-size: clamp(25px, 7.4vw, 30px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+  }
+  .page-head {
+    gap: 6px;
+  }
+  .page-head h1 {
+    margin: 0 0 2px;
+  }
+  .page-head p {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  .rail-head h2,
+  .story-panel > h2,
+  .story-panel > .extras-heading h2,
+  .results-head h2 {
+    font-size: clamp(19px, 5.4vw, 22px);
+    line-height: 1.15;
+  }
+  .rail-head p {
+    margin-top: 3px;
+  }
+  .extras-heading h3,
+  .story-subhead {
+    font-size: 17px;
+  }
+
+  /* Top rated, Studio and Library lists: bigger covers, rank sits on the cover. */
+  .chart {
+    gap: 10px;
+  }
+  .chart-row {
+    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-areas:
+      'cover main'
+      'cover score';
+    align-items: start;
+    gap: 6px 12px;
+    padding: 10px 52px 10px 10px;
+    min-height: 0;
+  }
+  .chart-cover {
+    position: relative;
+    align-self: start;
+  }
+  .chart-cover img {
+    border-radius: 10px;
+  }
+  .chart-rank {
+    position: absolute;
+    z-index: 2;
+    top: 6px;
+    left: 6px;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    background: var(--yellow);
+    color: var(--on-accent);
+    border: var(--bw-thin) solid var(--line);
+    border-radius: 50%;
+    font-size: 14px;
+    box-shadow: 1px 1px 0 var(--line);
+  }
+  .chart-row.podium .chart-rank {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  .chart-title {
+    font-size: 16px;
+    line-height: 1.22;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+  .chart-meta {
+    gap: 3px 8px;
+    font-size: 12px;
+  }
+  .chart-score {
+    align-self: end;
+  }
+  .library-row {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+}

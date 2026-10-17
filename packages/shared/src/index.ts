@@ -418,3 +418,7 @@ export function withEnglishTitle(
     },
   };
 }
+
+/** "1 episode", "12 episodes". */
+export const countOf = (n: number | string, noun: string) =>
+  `${n} ${Number(n) === 1 ? noun : `${noun}s`}`;

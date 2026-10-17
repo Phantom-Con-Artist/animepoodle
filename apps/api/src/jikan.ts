@@ -4,6 +4,7 @@ import {
   type MediaVideo,
   type ThemeSong,
   type CommunityResponse,
+  countOf,
 } from '@animepoodle/shared';
 import { CatalogError, featuresFor, normalizeTrailer } from './anilist';
 import { createProviderClient } from './provider-client';
@@ -75,10 +76,10 @@ export function normalizeJikan(d: JikanItem, manga: boolean): Title | null {
     rating: d.score || 0,
     episodes: manga
       ? d.chapters
-        ? `${d.chapters} chapters`
+        ? countOf(d.chapters, 'chapter')
         : 'Ongoing'
       : d.episodes
-        ? `${d.episodes} episodes`
+        ? countOf(d.episodes, 'episode')
         : 'Episodes unknown',
     genres,
     description: d.synopsis || 'No synopsis available yet.',

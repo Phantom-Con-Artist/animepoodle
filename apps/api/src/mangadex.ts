@@ -9,6 +9,7 @@ import {
   type MediaDetails,
   type ReadingSeries,
   type Title,
+  countOf,
 } from '@animepoodle/shared';
 import { CatalogError, featuresFor } from './anilist';
 
@@ -257,7 +258,11 @@ export function mangaDexTitle(m: MdManga): Title {
     format,
     year: a.year || 0,
     rating: 0,
-    episodes: a.lastChapter ? `${a.lastChapter} chapters` : a.status === 'ongoing' ? 'Ongoing' : '',
+    episodes: a.lastChapter
+      ? countOf(a.lastChapter, 'chapter')
+      : a.status === 'ongoing'
+        ? 'Ongoing'
+        : '',
     genres,
     tags: tags
       .filter((t) => t.attributes.group === 'theme')
