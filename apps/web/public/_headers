@@ -1,0 +1,11 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+/wasm/*
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=3600
+
+/images/*
+  Cache-Control: public, max-age=86400

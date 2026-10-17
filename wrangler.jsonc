@@ -1,0 +1,6 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "animepoodle",
+  "pages_build_output_dir": "./apps/web/out",
+  "compatibility_date": "2026-10-17",
+}

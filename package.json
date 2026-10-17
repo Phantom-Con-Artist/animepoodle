@@ -1,0 +1,31 @@
+{
+  "name": "animepoodle",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev -w @animepoodle/web\" \"npm run dev -w @animepoodle/api\"",
+    "build": "node scripts/check-wasm.mjs && npm run build:web && npm run build:functions",
+    "build:web": "npm run build -w @animepoodle/web",
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "tsx --test apps/api/src/*.test.ts scripts/wasm.test.ts && cargo test --manifest-path crates/recommender/Cargo.toml",
+    "build:functions": "wrangler pages functions build functions --outdir .wrangler/pages-worker && node scripts/package-worker.mjs",
+    "preview": "wrangler pages dev apps/web/out --port 4173",
+    "deploy": "wrangler pages deploy apps/web/out --project-name animepoodle",
+    "test:e2e": "playwright test",
+    "format": "prettier --write apps packages functions scripts tests *.json *.jsonc *.ts *.md"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.151.1"
+  }
+}

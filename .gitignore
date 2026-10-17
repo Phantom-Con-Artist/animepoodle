@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.env*
+!.env.example
+crates/recommender/target/
+.superdesign/tmp/
+*.tsbuildinfo
+apps/web/out/
+.wrangler/
+playwright-report/
+test-results/
+.dev.vars*
+
+.superdesign/draft.html
