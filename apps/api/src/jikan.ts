@@ -1,4 +1,10 @@
-import { type Title, type Artwork, type MediaVideo, type ThemeSong } from '@animepoodle/shared';
+import {
+  type Title,
+  type Artwork,
+  type MediaVideo,
+  type ThemeSong,
+  type CommunityResponse,
+} from '@animepoodle/shared';
 import { CatalogError, featuresFor, normalizeTrailer } from './anilist.js';
 import { createProviderClient } from './provider-client.js';
 import { httpsUrl } from './urls.js';
@@ -52,6 +58,11 @@ export function normalizeJikan(d: JikanItem, manga: boolean): Title | null {
               ? 'CANCELLED'
               : undefined,
     title: d.title_english || d.title,
+    titles: {
+      english: d.title_english || null,
+      romaji: d.title || null,
+      native: d.title_japanese || null,
+    },
     original: d.title_japanese || d.title,
     format: manga
       ? d.type === 'Manhwa'
@@ -225,4 +236,87 @@ export async function discoverJikan(
   const body = await request<{ data: JikanItem[] }>(`/${kind}?${params}`);
   if (!Array.isArray(body.data)) throw new CatalogError('Jikan returned an unreadable catalog.');
   return body.data.map((d) => normalizeJikan(d, manga)).filter((t): t is Title => !!t);
+}
+
+interface JikanReview {
+  mal_id: number;
+  url?: string;
+  date?: string;
+  review?: string;
+  score?: number;
+  tags?: string[];
+  is_spoiler?: boolean;
+  reactions?: { overall?: number };
+  user?: { username?: string; images?: { jpg?: { image_url?: string } } };
+}
+interface JikanTopic {
+  mal_id: number;
+  url?: string;
+  title?: string;
+  date?: string;
+  author_username?: string;
+  comments?: number;
+}
+const excerpt = (text: string) => {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  return clean.length > 700 ? `${clean.slice(0, 700).replace(/\s\S*$/, '')}…` : clean;
+};
+/** MyAnimeList reviews, forum threads and background notes, via Jikan. */
+export async function getJikanCommunity(
+  malId: number,
+  anime: boolean,
+  page: number,
+): Promise<CommunityResponse> {
+  const kind = anime ? 'anime' : 'manga';
+  const [full, reviews, topics] = await Promise.allSettled([
+    request<{ data: JikanItem & { background?: string; members?: number; rank?: number } }>(
+      `/${kind}/${malId}/full`,
+    ),
+    request<{ data: JikanReview[]; pagination?: { has_next_page?: boolean } }>(
+      `/${kind}/${malId}/reviews?page=${page}&spoilers=true&preliminary=true`,
+    ),
+    page === 1
+      ? request<{ data: JikanTopic[] }>(`/${kind}/${malId}/forum?filter=all`)
+      : Promise.resolve({ data: [] as JikanTopic[] }),
+  ]);
+  if ([full, reviews, topics].every((r) => r.status === 'rejected'))
+    throw (reviews as PromiseRejectedResult).reason;
+  const info = full.status === 'fulfilled' ? full.value.data : null;
+  const reviewData = reviews.status === 'fulfilled' ? reviews.value : null;
+  return {
+    malUrl: `https://myanimelist.net/${kind}/${malId}`,
+    background: info?.background?.trim() || null,
+    members: info?.members ?? null,
+    rank: info?.rank ?? null,
+    reviews: (reviewData?.data || [])
+      .filter((r) => Number.isSafeInteger(r.mal_id) && typeof r.review === 'string')
+      .slice(0, 6)
+      .map((r) => ({
+        id: r.mal_id,
+        author: r.user?.username || 'MyAnimeList member',
+        avatar: httpsUrl(r.user?.images?.jpg?.image_url),
+        score: typeof r.score === 'number' ? r.score : null,
+        date: r.date || null,
+        verdict: r.tags?.[0] || null,
+        excerpt: excerpt(r.review!),
+        spoiler: !!r.is_spoiler,
+        reactions: r.reactions?.overall || 0,
+        url: httpsUrl(r.url) || `https://myanimelist.net/${kind}/${malId}/reviews`,
+      })),
+    hasNextPage: !!reviewData?.pagination?.has_next_page,
+    topics:
+      topics.status === 'fulfilled'
+        ? (topics.value.data || []).slice(0, 8).map((t) => ({
+            id: t.mal_id,
+            title: t.title || 'Discussion thread',
+            author: t.author_username || 'MyAnimeList member',
+            comments: t.comments || 0,
+            date: t.date || null,
+            url: httpsUrl(t.url) || `https://myanimelist.net/${kind}/${malId}/forum`,
+          }))
+        : [],
+    ...([full, reviews, topics].some((r) => r.status === 'rejected')
+      ? { notice: 'Some MyAnimeList community data is unavailable right now.' }
+      : {}),
+  };
 }

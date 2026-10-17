@@ -74,13 +74,12 @@ export default function SupplementalMedia({
           <Music2 size={18} />
           Soundtrack & extras
         </h3>
-        <span>A little more to fall into</span>
       </div>
       {!requested ? (
         <div className="media-discovery-prompt">
           <div>
-            <strong>Every story has a sound. And a whole world of art.</strong>
-            <p>Explore opening songs, endings, music videos, and artwork.</p>
+            <strong>Openings, endings and artwork</strong>
+            <p>Load theme songs, music videos and extra artwork for this title.</p>
           </div>
           <button className="primary-button" onClick={() => setRequested(true)}>
             Find songs, videos & artwork <ArrowUpRight size={14} />
@@ -90,7 +89,7 @@ export default function SupplementalMedia({
         <>
           {loading && (
             <p className="extras-loading" role="status">
-              Finding songs, videos, and artwork…
+              Loading songs, videos and artwork…
             </p>
           )}
           {error && (

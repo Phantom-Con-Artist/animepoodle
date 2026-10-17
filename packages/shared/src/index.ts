@@ -17,10 +17,16 @@ export interface Title {
   bannerImage?: string | null;
   tags?: FeatureTag[];
   mediaFormat?: string;
+  season?: string | null;
+  seasonYear?: number | null;
+  popularity?: number;
+  trailer?: Trailer | null;
   origin?: string;
   status?: ReleaseStatus;
   title: string;
   original: string;
+  /** Every name the source gives, so people can pick which one they read. */
+  titles?: { english: string | null; romaji: string | null; native: string | null };
   format: Format;
   year: number;
   rating: number;
@@ -37,25 +43,25 @@ export const moods: { name: string; emoji: string; taste: Taste; description: st
     name: 'Take me somewhere',
     emoji: '🗺️',
     taste: [1, 0.5, 0.6, 0.5, 0.4, 1],
-    description: 'Grand adventures & worlds worth getting lost in',
+    description: 'Big journeys and worlds to explore',
   },
   {
     name: 'In my feelings',
     emoji: '🌧️',
     taste: [0.3, 1, 0.15, 0.4, 0.5, 0.4],
-    description: 'Beautiful stories that stay with you',
+    description: 'Stories that hit you emotionally',
   },
   {
     name: 'Just one more episode',
     emoji: '⚡',
     taste: [0.6, 0.5, 1, 0.85, 0.1, 0.6],
-    description: 'High stakes, big twists, zero bedtime',
+    description: 'Fast, tense and full of twists',
   },
   {
     name: 'Comfort zone',
     emoji: '☁️',
     taste: [0.4, 0.6, 0.1, 0.2, 1, 0.5],
-    description: 'A warm hug in story form',
+    description: 'Low stakes, cosy and funny',
   },
 ];
 export interface RankedTitle {
@@ -120,6 +126,79 @@ export interface MediaDetails {
   trailer: Trailer | null;
   reviews: MediaReview[];
   pageInfo: { currentPage: number; hasNextPage: boolean };
+  /** Full normalized title so a story page can render from a direct link. */
+  media?: Title;
+  profile?: MediaProfile;
+}
+export interface MediaCharacter {
+  id?: number;
+  name: string;
+  role: string;
+  image: string | null;
+  voiceActor?: { name: string; image: string | null; url: string } | null;
+}
+export interface ExternalLink {
+  site: string;
+  url: string;
+  type: 'STREAMING' | 'INFO' | 'SOCIAL' | string;
+  language: string | null;
+  color: string | null;
+}
+export interface MediaRelation {
+  relation: string;
+  item: Title;
+}
+export interface MediaRanking {
+  rank: number;
+  label: string;
+  kind: 'RATED' | 'POPULAR';
+}
+export interface MediaProfile {
+  studioList?: { id: number; name: string }[];
+  staff?: { name: string; role: string; url: string }[];
+  links?: ExternalLink[];
+  relations?: MediaRelation[];
+  rankings?: MediaRanking[];
+  nextEpisode?: { episode: number; airingAt: number } | null;
+  studios: string[];
+  season: string | null;
+  endYear: number | null;
+  duration: number | null;
+  sourceMaterial: string | null;
+  popularity: number;
+  favourites: number;
+  characters: MediaCharacter[];
+  recommendations: Title[];
+}
+export interface CommunityReview {
+  id: number;
+  author: string;
+  avatar: string | null;
+  score: number | null;
+  date: string | null;
+  verdict: string | null;
+  excerpt: string;
+  spoiler: boolean;
+  reactions: number;
+  url: string;
+}
+export interface ForumTopic {
+  id: number;
+  title: string;
+  author: string;
+  comments: number;
+  date: string | null;
+  url: string;
+}
+export interface CommunityResponse {
+  malUrl: string;
+  background: string | null;
+  members: number | null;
+  rank: number | null;
+  reviews: CommunityReview[];
+  hasNextPage: boolean;
+  topics: ForumTopic[];
+  notice?: string;
 }
 
 export interface MediaLink {
@@ -206,3 +285,90 @@ export {
   posteriorStats,
   VECTOR_SIZE,
 } from './vectors';
+
+/** One label per AniList media format, used everywhere so types never get mixed up. */
+export const mediaKinds: Record<string, { label: string; group: string }> = {
+  TV: { label: 'TV series', group: 'TV series' },
+  TV_SHORT: { label: 'Short', group: 'Shorts' },
+  MOVIE: { label: 'Movie', group: 'Movies' },
+  OVA: { label: 'OVA', group: 'OVAs' },
+  SPECIAL: { label: 'Special', group: 'Specials' },
+  ONA: { label: 'Web series', group: 'Web series' },
+  MUSIC: { label: 'Music video', group: 'Music videos' },
+  MANGA: { label: 'Series', group: 'Series' },
+  ONE_SHOT: { label: 'One-shot', group: 'One-shots' },
+  NOVEL: { label: 'Novel', group: 'Novels' },
+};
+export const animeKinds = ['TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL', 'TV_SHORT'] as const;
+export const bookKinds = ['MANGA', 'ONE_SHOT', 'NOVEL'] as const;
+export const kindLabel = (format?: string | null) =>
+  (format && mediaKinds[format]?.label) || 'Unknown type';
+export const isWatchFormat = (format: Format) => format === 'Anime' || format === 'Donghua';
+export const seasons = ['WINTER', 'SPRING', 'SUMMER', 'FALL'] as const;
+export type Season = (typeof seasons)[number];
+/** Anime seasons follow the calendar: Dec–Feb winter (December counts toward next year). */
+export function currentSeason(date = new Date()): { season: Season; year: number } {
+  const m = date.getUTCMonth();
+  const year = date.getUTCFullYear();
+  if (m === 11) return { season: 'WINTER', year: year + 1 };
+  return { season: seasons[Math.floor((m + 1) / 3) % 4], year };
+}
+export const seasonLabel = (season: string) => season.charAt(0) + season.slice(1).toLowerCase();
+export interface PageInfo {
+  currentPage: number;
+  hasNextPage: boolean;
+  total?: number;
+}
+export interface BrowseResponse extends CatalogResponse {
+  pageInfo: PageInfo;
+}
+export interface HighlightsResponse {
+  format: Format;
+  season: { season: Season; year: number } | null;
+  week: Title[];
+  month: Title[];
+  year: Title[];
+  seasonal: Title[];
+  upcoming: Title[];
+  fetchedAt: string;
+}
+export interface AwardWinner {
+  award: string;
+  ceremony: string;
+  year: number;
+  studio?: string | null;
+  item: Title;
+}
+export interface AwardsResponse {
+  winners: AwardWinner[];
+  source: string;
+  fetchedAt: string;
+}
+export interface StudioResponse {
+  id: number;
+  name: string;
+  isAnimationStudio: boolean;
+  favourites: number;
+  url: string;
+  items: Title[];
+  pageInfo: PageInfo;
+}
+/** Drops repeats (AniList pages can overlap when rankings shift between requests). */
+export function uniqueTitles(items: Title[]) {
+  const seen = new Set<string>();
+  return items.filter((t) => {
+    const k = `${t.format}:${t.id}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+export type TitleLanguage = 'english' | 'romaji' | 'native';
+/** The title in the reader's preferred language, falling back sensibly when it's missing. */
+export function displayTitle(item: Title, language: TitleLanguage = 'english') {
+  const t = item.titles;
+  if (!t) return item.title;
+  if (language === 'romaji') return t.romaji || t.english || item.title;
+  if (language === 'native') return t.native || t.romaji || item.title;
+  return t.english || t.romaji || item.title;
+}

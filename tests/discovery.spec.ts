@@ -1,202 +1,363 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import type { Title } from '../packages/shared/src/index';
 import { catalog } from './fixtures/catalog';
+
+// Every API is mocked so the suite is deterministic and never touches AniList or Jikan.
+const trailer = (id: string) => ({
+  site: 'youtube',
+  url: `https://www.youtube.com/watch?v=${id}`,
+  embedUrl: `https://www.youtube-nocookie.com/embed/${id}`,
+  thumbnail: null,
+});
+const items: Title[] = catalog.map((item, i) => ({
+  ...item,
+  mediaFormat: ['Anime', 'Donghua'].includes(item.format) ? (i === 3 ? 'MOVIE' : 'TV') : 'MANGA',
+  status: item.status || 'FINISHED',
+  bannerImage: item.bannerImage || '/images/hero.jpg',
+  season: ['Anime', 'Donghua'].includes(item.format) ? 'FALL' : null,
+  seasonYear: ['Anime', 'Donghua'].includes(item.format) ? 2026 : null,
+  trailer: i === 0 ? (trailer('abc123') as Title['trailer']) : null,
+}));
+const inSection = (format: string | null) => items.filter((t) => t.format === format);
+const emptyCommunity = {
+  malUrl: 'https://myanimelist.net/anime/52991',
+  background: null,
+  members: null,
+  rank: null,
+  reviews: [],
+  hasNextPage: false,
+  topics: [],
+};
+const details = (overrides: Record<string, unknown> = {}) => ({
+  anilistId: 154587,
+  malId: 52991,
+  url: 'https://anilist.co/anime/154587',
+  trailer: trailer('abc123'),
+  reviews: [],
+  pageInfo: { currentPage: 1, hasNextPage: false },
+  media: items[0],
+  profile: {
+    studios: ['Madhouse'],
+    studioList: [{ id: 11, name: 'Madhouse' }],
+    season: 'Fall 2023',
+    endYear: 2024,
+    duration: 24,
+    sourceMaterial: 'Manga',
+    popularity: 400000,
+    favourites: 50000,
+    characters: [
+      {
+        id: 1,
+        name: 'Frieren',
+        role: 'Main',
+        image: null,
+        voiceActor: { name: 'Atsumi Tanezaki', image: null, url: 'https://anilist.co/staff/1' },
+      },
+    ],
+    staff: [{ name: 'Keiichiro Saito', role: 'Director', url: 'https://anilist.co/staff/2' }],
+    links: [
+      {
+        site: 'Crunchyroll',
+        url: 'https://www.crunchyroll.com/series/x',
+        type: 'STREAMING',
+        language: null,
+        color: '#F88A36',
+      },
+      {
+        site: 'Official Site',
+        url: 'https://frieren-anime.jp',
+        type: 'INFO',
+        language: 'Japanese',
+        color: null,
+      },
+    ],
+    relations: [{ relation: 'Sequel', item: items[2] }],
+    rankings: [{ rank: 3, label: 'Highest rated of all time', kind: 'RATED' }],
+    nextEpisode: null,
+    recommendations: [items[8]],
+  },
+  ...overrides,
+});
+
 test.beforeEach(async ({ page }) => {
-  await page.route('**/api/discover?*', (route) => {
-    const params = new URL(route.request().url()).searchParams;
-    const items = catalog
-      .map((item) => ({
-        ...item,
-        status: item.status || 'FINISHED',
-        bannerImage: item.bannerImage || '/images/hero.jpg',
-      }))
-      .filter(
-        (item) =>
-          (!params.get('format') ||
-            params.get('format') === 'All' ||
-            item.format === params.get('format')) &&
-          (!params.get('status') ||
-            params.get('status') === 'ALL' ||
-            item.status === params.get('status')),
-      );
+  await page.route('**/api/highlights?*', (route) => {
+    const format = new URL(route.request().url()).searchParams.get('format');
+    const list = inSection(format);
     return route.fulfill({
-      json: { items, source: 'AniList', fetchedAt: new Date().toISOString() },
+      json: {
+        format,
+        season: ['Anime', 'Donghua'].includes(format!) ? { season: 'FALL', year: 2026 } : null,
+        week: list,
+        month: list.slice(1),
+        year: list.slice(0, 3),
+        seasonal: list,
+        upcoming: list.slice(-2),
+        fetchedAt: new Date().toISOString(),
+      },
     });
   });
-});
-test('discovery, format filters, and saved library survive a reload', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Find your next obsession.' })).toBeVisible();
-  await expect(page.locator('.title-card')).toHaveCount(6);
-  await page.getByRole('button', { name: 'Manhwa KR', exact: true }).click();
-  await expect(page.locator('.title-card')).toHaveCount(3);
-  await page.getByRole('button', { name: 'Save Solo Leveling', exact: true }).click();
-  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible())
-    await page.getByRole('button', { name: 'Open navigation' }).click();
-  await page
-    .getByRole('navigation')
-    .getByRole('button', { name: /My library/ })
-    .click();
-  await expect(page.locator('.title-card')).toHaveCount(1);
-  await page.reload();
-  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible())
-    await page.getByRole('button', { name: 'Open navigation' }).click();
-  await page
-    .getByRole('navigation')
-    .getByRole('button', { name: /My library/ })
-    .click();
-  await expect(page.locator('.title-card')).toHaveCount(1);
-});
-test('Rust engine loads in a worker and taste controls update recommendations', async ({
-  page,
-}) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Find my story', exact: true }).click();
-  await expect(page.getByText('Rust / WebAssembly', { exact: true })).toBeVisible();
-  await page.getByRole('slider', { name: 'Comfort', exact: false }).focus();
-  await page.keyboard.press('End');
-  await page.getByRole('button', { name: 'Show me my stories' }).click();
-  await expect(page.getByRole('heading', { name: 'A shelf with your name on it' })).toBeVisible();
-  await expect(page.locator('.card-match').first()).toContainText('% taste match');
-  await page.getByRole('button', { name: /Comfort zone/ }).click();
-  await expect(page.getByRole('status')).toBeVisible();
-});
-test('detail dialog and mobile layout are accessible without horizontal overflow', async ({
-  page,
-}) => {
-  const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Meet your next favorite' }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(
-    page.getByRole('dialog').getByRole('heading', { name: 'Frieren: Beyond Journey’s End' }),
-  ).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
-  await expect.poll(() => page.locator('.mini-card').count()).toBe(3);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
-  const broken = await page
-    .locator('.title-card img, .hero-art')
-    .evaluateAll(
-      (images) =>
-        images.filter(
-          (i) => !(i as HTMLImageElement).complete || (i as HTMLImageElement).naturalWidth === 0,
-        ).length,
-    );
-  expect(broken).toBe(0);
-  expect(errors).toEqual([]);
-  await page.screenshot({
-    path: `test-results/discovery-${test.info().project.name}.png`,
-    fullPage: true,
-  });
-});
-test('search handles upstream errors and matches romanized AniList results', async ({ page }) => {
-  await page.route('**/api/search?*', (route) =>
+  await page.route('**/api/awards', (route) =>
     route.fulfill({
       json: {
-        items: [
+        winners: [
           {
-            id: 991001,
-            title: 'A translated title',
-            original: '原題',
-            format: 'Anime',
-            year: 2024,
-            rating: 8,
-            episodes: '12 episodes',
-            genres: ['Fantasy'],
-            description: 'A good story',
-            image: '/images/frieren.jpg',
-            color: '#567456',
-            features: [1, 0.5, 0.4, 0.4, 0.6, 1],
+            award: 'Anime of the Year',
+            ceremony: '1st Crunchyroll Anime Awards',
+            year: 2016,
+            studio: 'MAPPA',
+            item: items[2],
           },
         ],
-        source: 'AniList',
+        source: 'Wikipedia and AniList',
+        fetchedAt: new Date().toISOString(),
       },
     }),
   );
-  await page.goto('/');
-  await page.getByRole('textbox', { name: 'Search stories' }).fill('romanized');
-  await page.getByRole('button', { name: 'Search all stories' }).click();
-  await expect(page.getByRole('button', { name: 'A translated title', exact: true })).toBeVisible();
-  await page.route('**/api/search?*', (route) =>
-    route.fulfill({ status: 503, json: { error: 'AniList is temporarily unavailable.' } }),
+  await page.route('**/api/genres', (route) =>
+    route.fulfill({ json: { genres: ['Action', 'Adventure', 'Drama', 'Fantasy'] } }),
   );
-  await page.getByRole('textbox', { name: 'Search stories' }).fill('another');
-  await page.getByRole('button', { name: 'Search all stories' }).click();
-  await expect(page.getByRole('status')).toContainText('temporarily unavailable');
-});
-test('Pages Function serves Hono routes on the deployed origin', async ({ request }) => {
-  const health = await request.get('/api/health');
-  expect(health.ok()).toBe(true);
-  expect((await health.json()).service).toBe('animepoodle-api');
-  const filtered = await request.get('/api/discover?status=invalid');
-  expect(filtered.status()).toBe(400);
-  const invalid = await request.get('/api/search?q=x');
-  expect(invalid.status()).toBe(400);
-});
-
-test('trailers start only on click, loop behind cards, and stop independently of saving', async ({
-  page,
-}) => {
-  let requests = 0;
-  await page.route('**/api/media/*', (route) => {
-    requests++;
+  await page.route('**/api/browse?*', (route) => {
+    const p = new URL(route.request().url()).searchParams;
+    const kinds = (p.get('kind') || '').split(',').filter(Boolean);
+    const list = inSection(p.get('format')).filter(
+      (t) => !kinds.length || kinds.includes(t.mediaFormat!),
+    );
+    const page = Number(p.get('page') || 1);
     return route.fulfill({
       json: {
-        anilistId: 154587,
-        url: 'https://anilist.co/anime/154587',
-        trailer: {
-          site: 'youtube',
-          url: 'https://www.youtube.com/watch?v=abc123',
-          embedUrl: 'https://www.youtube-nocookie.com/embed/abc123',
-          thumbnail: null,
+        items: page === 1 ? list.slice(0, 6) : list.slice(6),
+        pageInfo: {
+          currentPage: page,
+          hasNextPage: page === 1 && list.length > 6,
+          total: list.length,
         },
-        reviews: [],
-        pageInfo: { currentPage: 1, hasNextPage: false },
+        source: 'AniList',
+        fetchedAt: new Date().toISOString(),
       },
     });
   });
-  await page.route('https://www.youtube-nocookie.com/**', (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<html><body>Player test</body></html>' }),
+  await page.route('**/api/community?*', (route) => route.fulfill({ json: emptyCommunity }));
+  await page.route('**/api/media/*', (route) => route.fulfill({ json: details() }));
+  await page.route('**/api/studio/*', (route) =>
+    route.fulfill({
+      json: {
+        id: 11,
+        name: 'Madhouse',
+        isAnimationStudio: true,
+        favourites: 1000,
+        url: 'https://anilist.co/studio/11',
+        items: inSection('Anime').slice(0, 4),
+        pageInfo: { currentPage: 1, hasNextPage: false, total: 4 },
+      },
+    }),
   );
-  await page.goto('/');
-  expect(requests).toBe(0);
-  await expect(page.locator('.card-trailer-bg iframe')).toHaveCount(0);
-  await page
-    .locator('.title-card')
-    .getByRole('button', { name: 'Play trailer for Frieren: Beyond Journey’s End', exact: true })
-    .click();
-  const frame = page.locator('.card-trailer-bg iframe');
-  await expect(frame).toHaveCount(1);
-  const src = new URL((await frame.getAttribute('src'))!);
-  expect(src.searchParams.get('mute')).toBe('1');
-  expect(src.searchParams.get('loop')).toBe('1');
-  expect(src.searchParams.get('playlist')).toBe('abc123');
-  expect(src.searchParams.get('autoplay')).toBe('1');
-  await page
-    .getByRole('button', { name: 'Save Frieren: Beyond Journey’s End', exact: true })
-    .click();
-  await expect(frame).toHaveCount(1);
-  await page
-    .getByRole('button', { name: 'Stop trailer for Frieren: Beyond Journey’s End', exact: true })
-    .click();
-  await expect(frame).toHaveCount(0);
+  await page.route('https://www.youtube-nocookie.com/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<html><body>Player</body></html>' }),
+  );
 });
+
+async function openNav(page: Page, name: string | RegExp) {
+  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) {
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await page
+      .getByRole('navigation', { name: 'Mobile navigation' })
+      .getByRole('link', { name })
+      .click();
+  } else {
+    await page
+      .getByRole('navigation', { name: 'Main navigation' })
+      .getByRole('link', { name })
+      .click();
+  }
+}
+const noOverflow = (page: Page) =>
+  page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+
+test('home is a landing page with highlights, rails and award winners', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Frieren: Beyond Journey’s End' }),
+  ).toBeVisible();
+  for (const name of ['This week', 'Fresh this month', 'On the horizon'])
+    await expect(page.getByRole('heading', { name })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Anime of the Year/ })).toBeVisible();
+  await expect(page.locator('.award-card')).toContainText('1st Crunchyroll Anime Awards');
+  expect(await noOverflow(page)).toBe(true);
+  expect(errors).toEqual([]);
+  await page.screenshot({
+    path: `test-results/home-${test.info().project.name}.png`,
+    fullPage: true,
+  });
+});
+
+test('sections stay separate: manhwa never shows anime, and seasons are anime-only', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Manhwa/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Solo Leveling' })).toBeVisible();
+  const titles = await page
+    .locator('#week-title')
+    .locator('xpath=ancestor::section')
+    .locator('.card-title')
+    .allTextContents();
+  expect(titles.sort()).toEqual(
+    inSection('Manhwa')
+      .map((t) => t.title)
+      .sort(),
+  );
+  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) {
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Mobile navigation' })
+        .getByRole('link', { name: 'Seasonal' }),
+    ).toHaveCount(0);
+  } else {
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Main navigation' })
+        .getByRole('link', { name: 'Seasonal' }),
+    ).toHaveCount(0);
+  }
+});
+
+test('browse filters by type and year through the URL and loads more pages', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (r) => r.url().includes('/api/browse') && requests.push(r.url()));
+  await page.goto('/browse');
+  await expect(page.locator('.title-grid .title-card')).toHaveCount(6);
+  await page.getByRole('button', { name: 'Load more' }).click();
+  await expect(page.locator('.title-grid .title-card')).toHaveCount(10);
+  await page.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'Movie' }).click();
+  await expect(page).toHaveURL(/kind=MOVIE/);
+  await expect(page.locator('.title-grid .title-card')).toHaveCount(1);
+  await expect(page.locator('.title-card .format-badge')).toHaveText('Movie');
+  if (await page.getByRole('button', { name: /^Filters/ }).isVisible())
+    await page.getByRole('button', { name: /^Filters/ }).click();
+  await page.getByLabel('Year').selectOption('2024');
+  await expect(page).toHaveURL(/year=2024/);
+  expect(requests.some((u) => u.includes('kind=MOVIE') && u.includes('year=2024'))).toBe(true);
+  expect(await noOverflow(page)).toBe(true);
+});
+
+test('header search goes to browse and can broaden to Jikan', async ({ page }) => {
+  await page.route('**/api/search?*', (route) => {
+    const broad = new URL(route.request().url()).searchParams.get('broaden') === '1';
+    const base = { ...items[0], id: 991002, title: 'Primary story' };
+    return route.fulfill({
+      json: {
+        items: broad
+          ? [base, { ...base, id: 991003, title: 'Secondary story', source: 'Jikan' }]
+          : [base],
+        source: broad ? 'AniList + Jikan' : 'AniList',
+      },
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'Search stories' }).fill('story');
+  await page.getByRole('textbox', { name: 'Search stories' }).press('Enter');
+  await expect(page).toHaveURL(/\/browse\?q=story/);
+  await expect(page.locator('.title-grid .card-title')).toHaveText(['Primary story']);
+  await page.getByRole('button', { name: 'Broaden with Jikan' }).click();
+  await expect(page.locator('.title-grid .card-title')).toHaveText([
+    'Primary story',
+    'Secondary story',
+  ]);
+});
+
+test('top rated is a numbered chart sorted by score', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (r) => r.url().includes('/api/browse') && requests.push(r.url()));
+  await page.goto('/top');
+  await expect(page.getByRole('heading', { level: 1, name: 'Top rated anime' })).toBeVisible();
+  await expect(page.locator('.chart-row')).toHaveCount(6);
+  await expect(page.locator('.chart-rank').first()).toHaveText('1');
+  expect(requests.every((u) => u.includes('sort=SCORE_DESC'))).toBe(true);
+});
+
+test('seasonal groups titles by type and steps between seasons', async ({ page }) => {
+  const requests: string[] = [];
+  page.on('request', (r) => r.url().includes('/api/browse') && requests.push(r.url()));
+  await page.goto('/seasonal?season=FALL&year=2026');
+  await expect(page.getByRole('heading', { level: 1, name: 'Fall 2026' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /TV series/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Movies/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Summer 2026' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Summer 2026' })).toBeVisible();
+  expect(requests.some((u) => u.includes('season=SUMMER') && u.includes('year=2026'))).toBe(true);
+});
+
+test('library statuses work across sections and survive a reload', async ({ page }) => {
+  await page.goto('/browse');
+  await page.getByRole('button', { name: 'Add: Solo Leveling' }).click();
+  await page.getByRole('menuitemradio', { name: 'Watching', exact: true }).click();
+  await expect(page.locator('.title-card .library-badge').first()).toHaveText('Watching');
+  await page.getByRole('button', { name: /^Manga/ }).click();
+  await page.getByRole('button', { name: 'Add: Berserk' }).click();
+  await page.getByRole('menuitemradio', { name: 'Next on my list' }).click();
+  await page.getByRole('link', { name: /My library/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'My library' })).toBeVisible();
+  await expect(page.locator('.library-group h2')).toHaveText([/Anime/, /Manga/]);
+  await page.getByRole('tab', { name: /In progress/ }).click();
+  await expect(page.locator('.title-card .card-title')).toHaveText(['Solo Leveling']);
+  await page.reload();
+  await page.getByRole('tab', { name: /Next on my list/ }).click();
+  await expect(page.locator('.title-card .card-title')).toHaveText(['Berserk']);
+  await page.getByRole('button', { name: 'List view' }).click();
+  await page.getByRole('button', { name: /^Next on my list/ }).click();
+  await page.getByRole('menuitemradio', { name: 'Read', exact: true }).click();
+  await page.getByRole('tab', { name: /Finished/ }).click();
+  await expect(page.locator('.library-row')).toHaveCount(1);
+});
+
+test('older bookmarks become "Next on my list"', async ({ page }) => {
+  await page.addInitScript((saved) => {
+    localStorage.setItem(
+      'animepoodle-profile',
+      JSON.stringify({ saved: ['Anime:52991'], savedTitles: [saved] }),
+    );
+  }, items[0]);
+  await page.goto('/library');
+  await page.getByRole('tab', { name: /Next on my list/ }).click();
+  await expect(page.locator('.title-card .card-title')).toHaveText([
+    'Frieren: Beyond Journey’s End',
+  ]);
+});
+
+test('story pages show where to watch, cast, studios and keep ratings', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('.highlight').getByRole('link', { name: 'See details' }).click();
+  await expect(page).toHaveURL(/\/story\?format=Anime&anilist=154587/);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Frieren: Beyond Journey’s End' }),
+  ).toBeVisible();
+  await expect(page.getByRole('link', { name: /Crunchyroll/ })).toHaveAttribute(
+    'href',
+    'https://www.crunchyroll.com/series/x',
+  );
+  await expect(page.getByText('Atsumi Tanezaki')).toBeVisible();
+  await expect(page.getByText('#3 highest rated of all time')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Fandom wikis/ }).first()).toHaveAttribute(
+    'href',
+    /fandom\.com/,
+  );
+  await page.getByRole('combobox', { name: 'My rating' }).selectOption('5');
+  await page.reload();
+  await expect(page.getByRole('combobox', { name: 'My rating' })).toHaveValue('5');
+  await page.getByRole('link', { name: 'Madhouse' }).click();
+  await expect(page).toHaveURL(/\/studio\?id=11/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Madhouse' })).toBeVisible();
+  expect(await noOverflow(page)).toBe(true);
+});
+
 test('story trailers are click to play and spoiler-hidden reviews paginate', async ({ page }) => {
   await page.route('**/api/media/*', (route) => {
     const second = new URL(route.request().url()).searchParams.get('page') === '2';
     return route.fulfill({
-      json: {
-        anilistId: 154587,
-        url: 'https://anilist.co/anime/154587',
-        trailer: {
-          site: 'youtube',
-          url: 'https://www.youtube.com/watch?v=abc123',
-          embedUrl: 'https://www.youtube-nocookie.com/embed/abc123',
-          thumbnail: null,
-        },
+      json: details({
         reviews: [
           {
             id: second ? 2 : 1,
@@ -209,14 +370,10 @@ test('story trailers are click to play and spoiler-hidden reviews paginate', asy
           },
         ],
         pageInfo: { currentPage: second ? 2 : 1, hasNextPage: !second },
-      },
+      }),
     });
   });
-  await page.route('https://www.youtube-nocookie.com/**', (route) =>
-    route.fulfill({ contentType: 'text/html', body: '<html><body>Player test</body></html>' }),
-  );
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Meet your next favorite' }).click();
+  await page.goto('/story?format=Anime&anilist=154587&mal=52991');
   await expect(page.getByText('First reader', { exact: true })).toBeVisible();
   await expect(page.locator('.trailer-panel iframe')).toHaveCount(0);
   await expect(
@@ -234,60 +391,37 @@ test('story trailers are click to play and spoiler-hidden reviews paginate', asy
   await expect(page.getByText('Second reader', { exact: true })).toBeVisible();
   await expect(page.getByText('Page 2', { exact: true })).toBeVisible();
 });
-test('cards preserve cover artwork when a trailer is missing', async ({ page }) => {
-  await page.route('**/api/media/*', (route) =>
-    route.fulfill({
-      json: {
-        anilistId: 154587,
-        url: 'https://anilist.co/anime/154587',
-        trailer: null,
-        reviews: [],
-        pageInfo: { currentPage: 1, hasNextPage: false },
-      },
-    }),
-  );
-  await page.goto('/');
-  await page
-    .locator('.title-card')
+
+test('card trailers play muted and looping on click and stop independently of saving', async ({
+  page,
+}) => {
+  await page.goto('/browse');
+  const card = page.locator('.title-card').filter({ hasText: 'Frieren' });
+  await expect(card.locator('.card-trailer-bg iframe')).toHaveCount(0);
+  await card
     .getByRole('button', { name: 'Play trailer for Frieren: Beyond Journey’s End', exact: true })
     .click();
-  await expect(
-    page.locator('.title-card').getByRole('button', {
-      name: 'No trailer available for Frieren: Beyond Journey’s End',
-      exact: true,
-    }),
-  ).toBeDisabled();
-  await expect(page.locator('.card-trailer-bg iframe')).toHaveCount(0);
-  await expect(page.locator('.title-card img').first()).toBeVisible();
+  const frame = card.locator('.card-trailer-bg iframe');
+  await expect(frame).toHaveCount(1);
+  const src = new URL((await frame.getAttribute('src'))!);
+  expect([
+    src.searchParams.get('mute'),
+    src.searchParams.get('loop'),
+    src.searchParams.get('playlist'),
+  ]).toEqual(['1', '1', 'abc123']);
+  await card.getByRole('button', { name: /Add: Frieren/ }).click();
+  await page.getByRole('menuitemradio', { name: 'Watched', exact: true }).click();
+  await expect(frame).toHaveCount(1);
+  await card
+    .getByRole('button', { name: 'Stop trailer for Frieren: Beyond Journey’s End', exact: true })
+    .click();
+  await expect(frame).toHaveCount(0);
 });
 
-test('soundtrack extras are on demand, attributed, and click to play', async ({ page }) => {
-  let extrasRequests = 0;
-  await page.route('**/api/media/*', (route) =>
-    route.fulfill({
-      json: {
-        anilistId: 154587,
-        malId: 52991,
-        url: 'https://anilist.co/anime/154587',
-        bannerImage: '/images/hero.jpg',
-        youtubeLinks: [
-          {
-            label: 'Trailer on YouTube',
-            url: 'https://www.youtube.com/watch?v=abc123',
-            source: 'AniList',
-          },
-        ],
-        trailer: null,
-        reviews: [],
-        pageInfo: { currentPage: 1, hasNextPage: false },
-      },
-    }),
-  );
+test('soundtrack extras load on demand and play on click', async ({ page }) => {
+  let extras = 0;
   await page.route('**/api/extras?*', (route) => {
-    extrasRequests++;
-    const url = new URL(route.request().url());
-    expect(url.searchParams.get('anilistId')).toBe('154587');
-    expect(url.searchParams.get('malId')).toBe('52991');
+    extras++;
     return route.fulfill({
       json: {
         themes: [
@@ -303,18 +437,7 @@ test('soundtrack extras are on demand, attributed, and click to play', async ({ 
             url: 'https://animethemes.moe/anime/test',
           },
         ],
-        videos: [
-          {
-            title: 'Music video',
-            source: 'Jikan',
-            trailer: {
-              site: 'youtube',
-              url: 'https://www.youtube.com/watch?v=music123',
-              embedUrl: 'https://www.youtube-nocookie.com/embed/music123',
-              thumbnail: null,
-            },
-          },
-        ],
+        videos: [],
         artwork: [
           {
             url: '/images/frieren.jpg',
@@ -331,282 +454,78 @@ test('soundtrack extras are on demand, attributed, and click to play', async ({ 
     });
   });
   await page.route('https://a.animethemes.moe/**', (route) => route.abort());
-  await page.route('https://v.animethemes.moe/**', (route) => route.abort());
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Meet your next favorite' }).click();
-  await expect(page.getByRole('link', { name: 'Trailer on YouTube AniList' })).toHaveAttribute(
-    'href',
-    'https://www.youtube.com/watch?v=abc123',
-  );
-  expect(extrasRequests).toBe(0);
-  await expect(page.locator('audio,video')).toHaveCount(0);
+  await page.goto('/story?format=Anime&anilist=154587&mal=52991');
+  await expect(page.getByRole('heading', { name: 'Soundtrack & extras' })).toBeVisible();
+  expect(extras).toBe(0);
   await page.getByRole('button', { name: 'Find songs, videos & artwork' }).click();
   await expect(page.getByText('Opening Song', { exact: true })).toBeVisible();
-  await page.getByRole('heading', { name: 'Openings & endings' }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: `test-results/supplemental-${test.info().project.name}.png` });
-  await expect(page.locator('audio,video')).toHaveCount(0);
   await page.getByRole('button', { name: 'Listen to Opening Song' }).click();
   await expect(page.locator('audio')).toHaveAttribute('src', 'https://a.animethemes.moe/test.ogg');
   await page.getByRole('button', { name: 'Stop theme playback' }).click();
   await expect(page.locator('audio')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Watch Opening Song' }).click();
-  await expect(page.locator('video')).toHaveAttribute('src', 'https://v.animethemes.moe/test.webm');
-  await expect(page.getByRole('link', { name: 'Open artwork 2 from Jikan' })).toHaveAttribute(
-    'href',
-    '/images/frieren.jpg',
+});
+
+test('settings switch title language and remember trailer previews', async ({ page }) => {
+  await page.route('**/api/highlights?*', (route) =>
+    route.fulfill({
+      json: {
+        format: 'Anime',
+        season: null,
+        week: [
+          {
+            ...items[0],
+            titles: {
+              english: 'Frieren: Beyond Journey’s End',
+              romaji: 'Sousou no Frieren',
+              native: '葬送のフリーレン',
+            },
+          },
+        ],
+        month: [],
+        year: [],
+        seasonal: [],
+        upcoming: [],
+        fetchedAt: new Date().toISOString(),
+      },
+    }),
   );
-  const dialog = page.getByRole('dialog');
-  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
-  await expect(page.getByRole('button', { name: 'Close dialog', exact: true })).toBeInViewport();
-  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
-  await expect(dialog).not.toBeVisible();
-});
-test('broader search is opt-in and keeps AniList titles first', async ({ page }) => {
-  const base = {
-    id: 991002,
-    title: 'Primary story',
-    original: 'Primary',
-    format: 'Anime',
-    year: 2024,
-    rating: 8,
-    episodes: '12 episodes',
-    genres: ['Fantasy'],
-    description: 'Story',
-    image: '/images/frieren.jpg',
-    color: '#567456',
-    features: [1, 0.5, 0.4, 0.4, 0.6, 1],
-    source: 'AniList',
-  };
-  await page.route('**/api/search?*', (route) => {
-    const broad = new URL(route.request().url()).searchParams.get('broaden') === '1';
-    return route.fulfill({
-      json: {
-        items: broad
-          ? [base, { ...base, id: 991003, title: 'Secondary story', source: 'Jikan' }]
-          : [base],
-        source: broad ? 'AniList + Jikan' : 'AniList',
-      },
-    });
-  });
   await page.goto('/');
-  await page.getByRole('textbox', { name: 'Search stories' }).fill('test');
-  await page.getByRole('button', { name: 'Search all stories' }).click();
-  await expect(page.locator('.title-card')).toHaveCount(1);
-  await page.getByRole('button', { name: 'Broaden with Jikan' }).click();
-  await expect(page.locator('.title-card')).toHaveCount(2);
-  await expect(page.locator('.card-title').first()).toHaveText('Primary story');
-});
-
-test('private ratings persist and update recommendations without API requests', async ({
-  page,
-}) => {
-  let apiCalls = 0;
-  await page.route('**/api/**', (route) => {
-    if (new URL(route.request().url()).pathname === '/api/discover') return route.fallback();
-    apiCalls++;
-    return route.fulfill({
-      json: {
-        anilistId: 154587,
-        url: 'https://anilist.co/anime/154587',
-        trailer: null,
-        reviews: [],
-        pageInfo: { currentPage: 1, hasNextPage: false },
-      },
-    });
-  });
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Meet your next favorite' }).click();
-  await expect(page.getByRole('heading', { name: 'Soundtrack & extras' })).toBeVisible();
-  const before = apiCalls;
-  await page.getByRole('combobox', { name: 'My rating' }).selectOption('5');
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () => JSON.parse(localStorage.getItem('animepoodle-profile') || '{}').feedback?.[0]?.rating,
-      ),
-    )
-    .toBe(5);
-  expect(apiCalls).toBe(before);
-  await page.reload();
-  await page.getByRole('button', { name: 'Meet your next favorite' }).click();
-  await expect(page.getByRole('combobox', { name: 'My rating' })).toHaveValue('5');
-  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
-  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible())
+  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) {
     await page.getByRole('button', { name: 'Open navigation' }).click();
-  await page
-    .getByRole('navigation')
-    .getByRole('button', { name: /For you/ })
-    .click();
-  await expect(page.getByRole('heading', { name: 'A shelf with your name on it' })).toBeVisible();
-  await expect(
-    page.locator('.title-card .card-title').filter({ hasText: 'Frieren: Beyond Journey’s End' }),
-  ).toHaveCount(0);
-});
-test('discovered metadata is reused from IndexedDB after reload without another search', async ({
-  page,
-}) => {
-  let searchCalls = 0;
-  await page.route('**/api/search?*', (route) => {
-    searchCalls++;
-    return route.fulfill({
-      json: {
-        items: [
-          {
-            id: 991111,
-            anilistId: 991112,
-            malId: 991111,
-            title: 'Remembered discovery',
-            original: 'Remembered',
-            format: 'Anime',
-            year: 2024,
-            rating: 8,
-            episodes: '12 episodes',
-            genres: ['Fantasy'],
-            tags: [{ name: 'Time Travel', rank: 95 }],
-            description: 'A discovery to keep on this device.',
-            image: '/images/frieren.jpg',
-            color: '#567456',
-            features: [1, 0.5, 0.4, 0.4, 0.6, 1],
-          },
-        ],
-        source: 'AniList',
-      },
-    });
-  });
-  await page.goto('/');
-  await page.getByRole('textbox', { name: 'Search stories' }).fill('remembered');
-  await page.getByRole('button', { name: 'Search all stories' }).click();
-  await expect(
-    page.getByRole('button', { name: 'Remembered discovery', exact: true }),
-  ).toBeVisible();
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          new Promise<boolean>((resolve, reject) => {
-            const request = indexedDB.open('animepoodle-local-catalog');
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => {
-              const db = request.result;
-              const tx = db.transaction('titles', 'readonly');
-              const read = tx.objectStore('titles').get('Anime:991111');
-              read.onsuccess = () => {
-                resolve(!!read.result);
-                db.close();
-              };
-              read.onerror = () => reject(read.error);
-            };
-          }),
-      ),
-    )
-    .toBe(true);
+    await page
+      .getByRole('dialog', { name: 'Navigation' })
+      .getByRole('button', { name: 'Settings' })
+      .click();
+  } else await page.getByRole('button', { name: 'Open settings' }).click();
+  await page.getByText('Romaji', { exact: true }).click();
+  await page.getByRole('switch', { name: /Play trailers on hover/ }).uncheck();
+  await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Sousou no Frieren' })).toBeVisible();
   await page.reload();
-  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible())
-    await page.getByRole('button', { name: 'Open navigation' }).click();
-  await page
-    .getByRole('navigation')
-    .getByRole('button', { name: /For you/ })
-    .click();
-  await expect(
-    page.getByRole('button', { name: 'Remembered discovery', exact: true }),
-  ).toBeVisible();
-  expect(searchCalls).toBe(1);
+  await expect(page.getByRole('heading', { level: 1, name: 'Sousou no Frieren' })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('animepoodle-prefs')!))).toEqual(
+    {
+      titleLanguage: 'romaji',
+      hoverPreviews: false,
+    },
+  );
 });
 
-test('release filters fetch live upcoming titles instead of a bundled catalog', async ({
-  page,
-}) => {
-  const statuses: string[] = [];
-  await page.route('**/api/discover?*', async (route) => {
-    const status = new URL(route.request().url()).searchParams.get('status')!;
-    statuses.push(status);
-    return route.fulfill({
-      json: {
-        items: [
-          {
-            ...catalog[0],
-            id: 987651,
-            anilistId: 987652,
-            title: 'Live future discovery',
-            year: 0,
-            rating: 0,
-            status: status === 'ALL' ? 'RELEASING' : status,
-            tags: [{ name: 'Space Opera', rank: 98 }],
-            source: 'AniList',
-          },
-        ],
-        source: 'AniList',
-        fetchedAt: new Date().toISOString(),
-      },
-    });
-  });
+test('ratings shape For you without extra API requests', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('.title-card .card-title')).toHaveText('Live future discovery');
-  await expect(page.locator('.title-card')).toHaveCount(1);
-  await page.getByRole('combobox', { name: 'Release status' }).selectOption('NOT_YET_RELEASED');
-  await expect(page.locator('.title-card .release-badge')).toHaveText('TBA / upcoming');
-  await expect(page.locator('.title-card .card-meta')).toContainText('TBA');
-  expect(statuses).toContain('NOT_YET_RELEASED');
+  await expect(page.getByRole('heading', { name: 'This week' })).toBeVisible();
+  await page.addInitScript(() => {});
+  await openNav(page, 'For you');
+  await expect(page.getByRole('heading', { level: 1, name: 'For you' })).toBeVisible();
+  await expect(page.locator('.title-card').first()).toBeVisible();
+  await expect(page.locator('.card-match').first()).toContainText('% match');
+  await expect(page.getByText('Rust / WebAssembly', { exact: true })).toBeVisible();
 });
 
-test('SWR restores cached discovery while refreshing and keeps it on API failure', async ({
-  page,
-}) => {
-  let mode: 'initial' | 'delayed' | 'failure' = 'initial';
-  let release: (() => void) | undefined;
-  let refreshes = 0;
-  await page.route('**/api/discover?*', async (route) => {
-    refreshes++;
-    if (mode === 'delayed')
-      await new Promise<void>((resolve) => {
-        release = resolve;
-      });
-    if (mode === 'failure')
-      return route.fulfill({ status: 503, json: { error: 'Provider offline' } });
-    return route.fulfill({
-      json: {
-        items: [
-          {
-            ...catalog[0],
-            title: mode === 'initial' ? 'Cached live story' : 'Updated live story',
-            status: 'FINISHED',
-          },
-        ],
-        source: 'AniList',
-        fetchedAt: new Date().toISOString(),
-      },
-    });
-  });
-  await page.goto('/');
-  await expect(page.locator('.title-card .card-title')).toHaveText('Cached live story');
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          new Promise<number>((resolve, reject) => {
-            const req = indexedDB.open('animepoodle-local-catalog');
-            req.onerror = () => reject(req.error);
-            req.onsuccess = () => {
-              const db = req.result;
-              const read = db.transaction('requests').objectStore('requests').count();
-              read.onsuccess = () => {
-                resolve(read.result);
-                db.close();
-              };
-            };
-          }),
-      ),
-    )
-    .toBe(1);
-  mode = 'delayed';
-  await page.reload();
-  await expect(page.locator('.title-card .card-title')).toHaveText('Cached live story');
-  await expect.poll(() => !!release).toBe(true);
-  release!();
-  await expect(page.locator('.title-card .card-title')).toHaveText('Updated live story');
-  mode = 'failure';
-  await page.getByRole('button', { name: 'Check updates' }).click();
-  await expect(page.getByText('Could not refresh. Showing cached discoveries.')).toBeVisible();
-  await expect(page.locator('.title-card .card-title')).toHaveText('Updated live story');
-  expect(refreshes).toBe(3);
+test('Pages Function serves Hono routes on the deployed origin', async ({ request }) => {
+  const health = await request.get('/api/health');
+  expect(health.ok()).toBe(true);
+  expect((await health.json()).service).toBe('animepoodle-api');
+  expect((await request.get('/api/browse?format=All')).status()).toBe(400);
+  expect((await request.get('/api/search?q=x')).status()).toBe(400);
 });

@@ -1,6 +1,6 @@
 # animepoodle 🐩
 
-An anime and manga discovery app with a playful dark interface, AniList-first search, AnimeThemes music, Jikan extras, a local library, and browser-side recommendations. Built with **Next.js + React + Tailwind CSS**, **Hono**, and **Rust → WebAssembly**. No Vite. Deploys to **Cloudflare Pages (`pages.dev`)** without managing a server.
+A place to discover and track anime, Chinese anime (donghua), manga, manhwa and manhua. Soft neo-brutalist design with light and dark themes, live AniList data, AnimeThemes music, Jikan extras, a private local library, and recommendations computed in the browser. Built with **Next.js + React + Tailwind CSS**, **Hono**, and **Rust → WebAssembly**. No Vite. Deploys to **Cloudflare Pages (`pages.dev`)** without managing a server.
 
 ## Run locally
 
@@ -26,14 +26,14 @@ The compiled `.wasm` file is included in `apps/web/public/wasm/`, so the Cloudfl
 
 For a Pages project connected to this Git repository:
 
-| Setting                        | Value                         |
-| ------------------------------ | ----------------------------- |
-| Framework preset               | None                          |
-| Root directory                 | Repository root (leave blank) |
-| Build command                  | `npm run build`               |
-| Build output directory         | `apps/web/out`                |
-| Node version                   | 22 or newer                   |
-| Required environment variables | None                          |
+| Setting                | Value                         |
+| ---------------------- | ----------------------------- |
+| Framework preset       | None                          |
+| Root directory         | Repository root (leave blank) |
+| Build command          | `npm run build`               |
+| Build output directory | `apps/web/out`                |
+| Node version           | 22 or newer                   |
+| Environment variables  | Giscus settings (see below)   |
 
 Alternatively, deploy from your computer:
 
@@ -43,27 +43,44 @@ npx wrangler login
 npm run deploy
 ```
 
+### Comments (Giscus)
+
+Comments are optional and stay switched off until these build-time variables are set in **Pages → Settings → Environment variables** (or `.env.local` for development):
+
+| Variable                         | Value                                         |
+| -------------------------------- | --------------------------------------------- |
+| `NEXT_PUBLIC_GISCUS_REPO`        | `Phantom-Con-Artist/animepoodle`              |
+| `NEXT_PUBLIC_GISCUS_REPO_ID`     | `R_kgDOVNeddA`                                |
+| `NEXT_PUBLIC_GISCUS_CATEGORY`    | `Story threads`                               |
+| `NEXT_PUBLIC_GISCUS_CATEGORY_ID` | From https://giscus.app after the steps below |
+
+1. Repository **Settings → General → Features**: tick **Discussions**.
+2. Install the Giscus app: https://github.com/apps/giscus (only this repository).
+3. **Discussions → Categories → New category**: name `Story threads`, format **Announcement** (so only Giscus and maintainers open threads, while everyone can reply).
+4. Visit https://giscus.app, enter the repository, choose the category, and copy `data-category-id`.
+5. Pin the welcome post from `.github/DISCUSSIONS_WELCOME.md` in that category.
+
+Reading comments needs no account. Posting requires a GitHub sign-in inside the widget; Giscus has no anonymous mode.
+
 The first deployment may prompt you to create a Pages project named `animepoodle`. If you choose a different project name, update `wrangler.jsonc` and the `deploy` script.
 
 `npm run build` packages the Hono Functions into `apps/web/out/_worker.js`. Upload the **complete output**, including `_worker.js`, `_routes.json`, and `wasm/`. Wrangler deployment or Git integration are the recommended paths; uploading only the HTML files loses live search. The `_routes.json` file limits Function execution to `/api/*`; other requests are served as static assets.
 
 ## What works
 
-- Discover live trending titles and search AniList’s public catalog. SWR instantly restores cached queries, then refreshes on demand, focus, or reconnect. Use “Broaden with Jikan” for additional matches; AniList results win deduplication. Search falls back to Jikan when AniList fails or has no matches.
-- Filter anime, manga, Korean manhwa, Chinese manhua, and donghua using media type and country of origin.
-- Query live trending, top-rated, or newest releases. Filter by Airing / ongoing, Aired / completed, TBA / upcoming, hiatus, or cancelled, plus genre.
-- Read synopses and save stories to a library that survives reloads.
-- Click a card’s trailer control to start a muted, looping YouTube background; stop it to restore the cover. Players never mount before that click.
-- Watch trailers in story details and browse public AniList review summaries, authors, scores, and helpfulness counts, three reviews per page. Summaries stay collapsed until revealed; full reviews link to AniList.
-- Dailymotion trailers open on their provider site because embedded players require a separately configured Dailymotion Player ID.
-- Explore opening and ending songs, artists, native audio streams, and WebM videos from AnimeThemes. Media players mount only after a click.
-- Discover promotional clips and music videos from Jikan, with direct YouTube links, plus API-provided covers, banners, and thumbnails.
-- Tune six taste dimensions, choose a mood, and control recommendation variety.
-- Give private 1–5 ratings to learn liked and disliked themes; revisited discoveries become local recommendation candidates without another fetch.
-- View a match score and an explanation; discover a random pick with “Surprise me.”
-- Use desktop and mobile layouts, keyboard navigation, and native modal dialogs.
+- **Home**: Top highlights that rotate every 9 seconds. Hovering one expands the picture into a landscape player and plays its trailer once, then the next highlight takes over. Rows below: Continue watching, This week, Fresh this month, Best of the year, This season, Anime of the Year winners, Coming soon, your list and your matches.
+- **Separate sections** for Anime, Chinese anime, Manga, Manhwa and Manhua. Recommendations, moods and Surprise me never mix them.
+- **Browse**: every AniList title, filtered by type (TV series, Movie, OVA, Special, Short, Web series; Series, One-shot, Novel for comics), year, season, genre and status. Filters live in the URL, so views can be shared. Search falls back to and can broaden with Jikan.
+- **Top rated**: a ranked chart by AniList score, ignoring titles with too few votes; filter by year, genre and type.
+- **Seasonal**: any anime season, grouped by type.
+- **My library**: Watching / Reading, Next on my list, Watched / Read, On hold and Dropped, across every section, with counts, grid or list view, and sorting. Older bookmarks migrate to "Next on my list".
+- **Title pages**: synopsis, where to watch or read (official links from AniList), characters with voice actors, staff, seasons and related titles, studios (each with its own page), AniList rankings, next-episode countdown, trailer, AniList and MyAnimeList reviews, MAL forum threads, music, artwork, Fandom wiki search and Giscus comments.
+- **Award winners** are read live from Wikipedia’s Crunchyroll Anime of the Year table and matched to AniList, so new ceremonies appear without code changes. Genres come live from AniList too.
+- **Settings**: titles in English, Romaji or original script; trailers on hover on/off; trailer sound. Remembered in the browser.
+- Hover trailers widen cards into a 16:9 player in place while neighbours slide along. On touch screens, the Trailer button does the same.
+- Light, dark and system themes; mobile-first layout; keyboard navigation and visible focus; reduced motion respected.
 
-Discovery, featured stories, covers, ratings, and release statuses come from live APIs. The old sample collection exists only as test fixtures. When a refresh fails, the UI labels cached discoveries and keeps them available. Recommendation candidates grow from discoveries on this device.
+Everything shown comes from live APIs and is cached with SWR so repeat visits paint instantly. The sample collection exists only as test fixtures.
 
 ## Clean boundaries
 

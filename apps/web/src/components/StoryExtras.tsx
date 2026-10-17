@@ -12,15 +12,20 @@ import {
 import { type Title, type MediaDetails } from '@animepoodle/shared';
 import { fetchStoryDetails, trailerPlayerUrl } from '@/lib/trailers';
 import SupplementalMedia from './SupplementalMedia';
-export default function StoryExtras({ item }: { item: Title }) {
-  const [data, setData] = useState<MediaDetails | null>(null);
+export default function StoryExtras({ item, initial }: { item: Title; initial?: MediaDetails }) {
+  const [data, setData] = useState<MediaDetails | null>(initial || null);
   const [page, setPage] = useState(1);
   const [playing, setPlaying] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initial);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const mediaId = item.anilistId ? -item.anilistId : item.id;
   useEffect(() => {
+    if (initial && page === 1 && retry === 0) {
+      setData(initial);
+      setLoading(false);
+      return;
+    }
     const controller = new AbortController();
     setLoading(true);
     setError('');
@@ -38,12 +43,12 @@ export default function StoryExtras({ item }: { item: Title }) {
       }
     })();
     return () => controller.abort();
-  }, [mediaId, item.format, page, retry]);
+  }, [mediaId, item.format, page, retry, initial]);
   return (
     <section className="story-extras" aria-label="Trailers and community reviews">
       {!data && loading && (
         <p className="extras-loading" role="status">
-          Finding trailers and reader reviews…
+          Loading trailer and reviews…
         </p>
       )}
       {error && (
@@ -59,7 +64,7 @@ export default function StoryExtras({ item }: { item: Title }) {
           <div className="extras-heading">
             <h3>
               <Film size={18} />
-              The first glimpse
+              Trailer
             </h3>
             <a href={data.url} target="_blank" rel="noopener noreferrer">
               View on AniList <ArrowUpRight size={13} />
@@ -109,7 +114,7 @@ export default function StoryExtras({ item }: { item: Title }) {
               </a>
             </div>
           ) : (
-            <p className="extras-empty">No trailer has been added to AniList for this story yet.</p>
+            <p className="extras-empty">No trailer on AniList yet. The mystery continues.</p>
           )}
           {!!data.youtubeLinks?.length && (
             <div className="youtube-links" aria-label="YouTube links from AniList">
@@ -126,13 +131,10 @@ export default function StoryExtras({ item }: { item: Title }) {
           <div className="extras-heading reviews-heading">
             <h3>
               <MessageSquare size={18} />
-              From the fandom
+              AniList reviews
             </h3>
-            <span>Reviews from AniList</span>
           </div>
-          <p className="review-notice">
-            Readers’ opinions, in their own words. Summaries may contain spoilers.
-          </p>
+          <p className="review-notice">Summaries are hidden in case of spoilers.</p>
           <div className="review-list" aria-busy={loading}>
             {data.reviews.length ? (
               data.reviews.map((review) => (
@@ -162,9 +164,7 @@ export default function StoryExtras({ item }: { item: Title }) {
                 </article>
               ))
             ) : (
-              <p className="extras-empty">
-                No public reviews here yet. This story could be your next discovery.
-              </p>
+              <p className="extras-empty">No AniList reviews yet. Someone has to go first.</p>
             )}
           </div>
           {(data.pageInfo.hasNextPage || data.pageInfo.currentPage > 1) && (

@@ -4,12 +4,13 @@ import {
   type MediaDetails,
   type Trailer,
   type MediaLink,
+  type MediaProfile,
 } from '@animepoodle/shared';
 import { httpsUrl, youtubeUrl } from './urls.js';
-const mediaFields = `id idMal title{english romaji native} type format status countryOfOrigin tags{name rank isAdult isGeneralSpoiler isMediaSpoiler} startDate{year} averageScore episodes chapters genres description(asHtml:false) bannerImage coverImage{large color}`;
+export const mediaFields = `id idMal title{english romaji native} type format status countryOfOrigin tags{name rank isAdult isGeneralSpoiler isMediaSpoiler} startDate{year} season seasonYear popularity averageScore episodes chapters genres description(asHtml:false) bannerImage coverImage{large extraLarge color} trailer{id site}`;
 const query = `query Search($search:String!,$type:MediaType,$country:CountryCode,$status:MediaStatus){Page(page:1,perPage:30){media(search:$search,type:$type,countryOfOrigin:$country,status:$status,isAdult:false,sort:SEARCH_MATCH){${mediaFields}}}}`;
 const discoveryQuery = `query Discover($type:MediaType,$country:CountryCode,$status:MediaStatus,$sort:[MediaSort]){Page(page:1,perPage:30){media(type:$type,countryOfOrigin:$country,status:$status,isAdult:false,sort:$sort){${mediaFields}}}}`;
-interface AniMedia {
+export interface AniMedia {
   id: number;
   idMal: number | null;
   title: { english: string | null; romaji: string; native: string | null };
@@ -31,7 +32,11 @@ interface AniMedia {
   genres: string[];
   description: string | null;
   bannerImage?: string | null;
-  coverImage: { large: string; color: string | null };
+  season?: string | null;
+  seasonYear?: number | null;
+  popularity?: number | null;
+  trailer?: { id?: string; site?: string } | null;
+  coverImage: { large: string; extraLarge?: string; color: string | null };
 }
 export class CatalogError extends Error {
   constructor(
@@ -59,6 +64,10 @@ export function normalizeMedia(d: AniMedia): Title {
     malId: d.idMal || undefined,
     source: 'AniList',
     mediaFormat: d.format,
+    season: d.season || null,
+    seasonYear: d.seasonYear || null,
+    popularity: d.popularity || 0,
+    trailer: normalizeTrailer(d.trailer || null),
     origin: d.countryOfOrigin,
     status: d.status as Title['status'],
     tags: (d.tags || [])
@@ -76,6 +85,11 @@ export function normalizeMedia(d: AniMedia): Title {
       .map((tag) => ({ name: tag.name.slice(0, 100), rank: Math.min(100, tag.rank || 0) })),
     bannerImage: httpsUrl(d.bannerImage),
     title: d.title.english || d.title.romaji,
+    titles: {
+      english: d.title.english || null,
+      romaji: d.title.romaji || null,
+      native: d.title.native || null,
+    },
     original: d.title.native || d.title.romaji,
     format:
       d.type === 'ANIME'
@@ -87,7 +101,7 @@ export function normalizeMedia(d: AniMedia): Title {
           : d.countryOfOrigin === 'CN'
             ? 'Manhua'
             : 'Manga',
-    year: d.startDate.year || 0,
+    year: d.startDate?.year || 0,
     rating: d.averageScore ? d.averageScore / 10 : 0,
     episodes:
       d.type === 'MANGA'
@@ -99,16 +113,16 @@ export function normalizeMedia(d: AniMedia): Title {
         : d.episodes
           ? `${d.episodes} episodes`
           : 'Episodes unknown',
-    genres: d.genres,
+    genres: d.genres || [],
     description: (d.description || 'No synopsis available yet.')
       .replace(/<br\s*\/?\s*>/gi, '\n')
       .replace(/<[^>]*>/g, '')
       .replace(/&amp;/g, '&')
       .replace(/&quot;/g, '"')
       .replace(/&#039;/g, "'"),
-    image: d.coverImage.large,
+    image: d.coverImage.extraLarge || d.coverImage.large,
     color: d.coverImage.color || '#657675',
-    features: featuresFor(d.genres),
+    features: featuresFor(d.genres || []),
   };
 }
 const cache = new Map<string, { at: number; items: Title[] }>();
@@ -169,7 +183,7 @@ export async function searchAniList(
 }
 
 // Shared transport keeps rate-limit cooldowns consistent across search and details.
-async function requestAniList(document: string, variables: Record<string, unknown>) {
+export async function requestAniList(document: string, variables: Record<string, unknown>) {
   if (cooldownUntil > Date.now())
     throw new CatalogError(
       'AniList is taking a short breather. Please try again in a minute.',
@@ -206,8 +220,16 @@ async function requestAniList(document: string, variables: Record<string, unknow
 }
 const detailsQuery = `query StoryExtras($id:Int,$idMal:Int,$type:MediaType!,$page:Int!){
   Media(id:$id,idMal:$idMal,type:$type,isAdult:false){
-    id idMal bannerImage trailer{id site thumbnail}
-    externalLinks{site url isDisabled}
+    ${mediaFields} trailer{id site thumbnail}
+    externalLinks{site url isDisabled type language color}
+    endDate{year} duration source(version:3) favourites
+    nextAiringEpisode{episode airingAt}
+    rankings{rank type allTime season year context}
+    studios(isMain:true){nodes{id name}}
+    staff(perPage:8,sort:[RELEVANCE]){edges{role node{id name{full}}}}
+    characters(perPage:12,sort:[ROLE,RELEVANCE]){edges{role node{id name{full} image{medium}} voiceActors(language:JAPANESE,sort:[RELEVANCE]){id name{full} image{medium}}}}
+    relations{edges{relationType(version:2) node{${mediaFields}}}}
+    recommendations(perPage:8,sort:RATING_DESC){nodes{mediaRecommendation{${mediaFields}}}}
     reviews(page:$page,perPage:3,sort:RATING_DESC){
       pageInfo{currentPage hasNextPage}
       nodes{id summary score rating ratingAmount user{name}}
@@ -292,6 +314,8 @@ export async function getMediaDetails(
         currentPage: media.reviews?.pageInfo?.currentPage || page,
         hasNextPage: !!media.reviews?.pageInfo?.hasNextPage,
       },
+      media: media.title && media.coverImage && media.type ? normalizeMedia(media) : undefined,
+      profile: normalizeProfile(media),
     };
     if (detailsCache.size >= 100) detailsCache.delete(detailsCache.keys().next().value!);
     detailsCache.set(key, { at: Date.now(), value });
@@ -305,6 +329,120 @@ export async function getMediaDetails(
   }
 }
 
+interface AniProfileFields {
+  season?: string | null;
+  seasonYear?: number | null;
+  endDate?: { year: number | null } | null;
+  duration?: number | null;
+  source?: string | null;
+  popularity?: number | null;
+  favourites?: number | null;
+  studios?: { nodes?: { id: number; name: string }[] } | null;
+  characters?: {
+    edges?: {
+      role: string;
+      node: { id: number; name: { full: string }; image: { medium: string } | null };
+      voiceActors?: { id: number; name: { full: string }; image: { medium: string } | null }[];
+    }[];
+  } | null;
+  staff?: { edges?: { role: string; node: { id: number; name: { full: string } } }[] } | null;
+  externalLinks?: {
+    site?: string;
+    url?: string;
+    isDisabled?: boolean;
+    type?: string;
+    language?: string | null;
+    color?: string | null;
+  }[];
+  relations?: { edges?: { relationType: string; node: AniMedia }[] } | null;
+  rankings?: {
+    rank: number;
+    type: 'RATED' | 'POPULAR';
+    allTime: boolean;
+    season: string | null;
+    year: number | null;
+    context: string;
+  }[];
+  nextAiringEpisode?: { episode: number; airingAt: number } | null;
+  recommendations?: { nodes?: { mediaRecommendation: AniMedia | null }[] } | null;
+}
+export const words = (value: string | null | undefined) =>
+  value
+    ? value
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .replace(/^./, (c) => c.toUpperCase())
+    : null;
+export function normalizeProfile(media: AniProfileFields): MediaProfile {
+  return {
+    studios: (media.studios?.nodes || []).map((s) => s.name).slice(0, 4),
+    season: media.season ? `${words(media.season)} ${media.seasonYear || ''}`.trim() : null,
+    endYear: media.endDate?.year || null,
+    duration: media.duration || null,
+    sourceMaterial: words(media.source),
+    popularity: media.popularity || 0,
+    favourites: media.favourites || 0,
+    studioList: (media.studios?.nodes || [])
+      .slice(0, 4)
+      .map((st) => ({ id: st.id, name: st.name })),
+    characters: (media.characters?.edges || []).map((edge) => {
+      const va = edge.voiceActors?.[0];
+      return {
+        id: edge.node.id,
+        name: edge.node.name.full,
+        role: words(edge.role) || 'Supporting',
+        image: httpsUrl(edge.node.image?.medium),
+        voiceActor: va
+          ? {
+              name: va.name.full,
+              image: httpsUrl(va.image?.medium),
+              url: `https://anilist.co/staff/${va.id}`,
+            }
+          : null,
+      };
+    }),
+    staff: (media.staff?.edges || []).map((edge) => ({
+      name: edge.node.name.full,
+      role: edge.role,
+      url: `https://anilist.co/staff/${edge.node.id}`,
+    })),
+    links: (media.externalLinks || [])
+      .filter((l) => !l.isDisabled && l.site && httpsUrl(l.url))
+      .map((l) => ({
+        site: l.site!,
+        url: httpsUrl(l.url)!,
+        type: l.type || 'INFO',
+        language: l.language || null,
+        color: l.color && /^#[0-9a-f]{3,8}$/i.test(l.color) ? l.color : null,
+      })),
+    relations: (media.relations?.edges || [])
+      .filter((e) => e.node && !['CHARACTER', 'OTHER'].includes(e.relationType))
+      .map((e) => ({ relation: words(e.relationType) || 'Related', item: normalizeMedia(e.node) }))
+      .slice(0, 12),
+    rankings: (media.rankings || [])
+      .filter((r) => r.rank <= 100)
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, 4)
+      .map((r) => ({
+        rank: r.rank,
+        kind: r.type,
+        label: `${r.type === 'RATED' ? 'Highest rated' : 'Most popular'} ${
+          r.allTime
+            ? 'of all time'
+            : r.season
+              ? `${words(r.season)} ${r.year}`
+              : r.year
+                ? `of ${r.year}`
+                : ''
+        }`.trim(),
+      })),
+    nextEpisode: media.nextAiringEpisode || null,
+    recommendations: (media.recommendations?.nodes || [])
+      .map((node) => node.mediaRecommendation)
+      .filter((m): m is AniMedia => !!m)
+      .map(normalizeMedia),
+  };
+}
 export function normalizeYoutubeLinks(
   trailer: { site?: string; id?: string } | null,
   links: { site?: string; url?: string; isDisabled?: boolean }[],

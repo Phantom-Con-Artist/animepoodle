@@ -17,7 +17,7 @@ export async function fetchStoryDetails(
     throw new Error(data.error || 'Trailers and reviews are unavailable right now.');
   return data;
 }
-export function trailerPlayerUrl(trailer: Trailer, background = false) {
+export function trailerPlayerUrl(trailer: Trailer, background = false, loop = true) {
   if (!trailer.embedUrl) return trailer.url;
   const url = new URL(trailer.embedUrl);
   url.searchParams.set('autoplay', '1');
@@ -25,15 +25,24 @@ export function trailerPlayerUrl(trailer: Trailer, background = false) {
     url.searchParams.set('playsinline', '1');
     url.searchParams.set('rel', '0');
     if (background) {
+      // Muted autoplay always works; sound is switched on afterwards through the JS API.
+      url.searchParams.set('enablejsapi', '1');
+      if (typeof location !== 'undefined') url.searchParams.set('origin', location.origin);
       url.searchParams.set('mute', '1');
+      // Keep YouTube's own overlays out of the way of the artwork.
+      url.searchParams.set('iv_load_policy', '3');
+      url.searchParams.set('fs', '0');
+      url.searchParams.set('cc_load_policy', '0');
       url.searchParams.set('controls', '0');
       url.searchParams.set('disablekb', '1');
-      url.searchParams.set('loop', '1');
-      url.searchParams.set('playlist', url.pathname.split('/').pop()!);
+      if (loop) {
+        url.searchParams.set('loop', '1');
+        url.searchParams.set('playlist', url.pathname.split('/').pop()!);
+      }
     }
   } else if (background) {
     url.searchParams.set('mute', 'true');
-    url.searchParams.set('loop', 'true');
+    if (loop) url.searchParams.set('loop', 'true');
     url.searchParams.set('controls', 'false');
   }
   return url.toString();

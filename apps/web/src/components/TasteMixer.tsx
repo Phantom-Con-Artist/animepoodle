@@ -1,77 +1,120 @@
 'use client';
-import { type Dispatch, type SetStateAction } from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, Settings2 } from 'lucide-react';
 import { defaultTaste, dimensions, type Taste } from '@animepoodle/shared';
+import { useApp } from '@/lib/app-state';
+import { useEngine } from '@/lib/taste-engine';
 import Modal from './Modal';
-interface Props {
-  taste: Taste;
-  setTaste: Dispatch<SetStateAction<Taste>>;
-  variety: number;
-  setVariety: (v: number) => void;
-  engine: string;
-  candidateCount: number;
-  ratingCount: number;
-  onClearRatings: () => void;
-  onClose: () => void;
-  onShowStories: () => void;
-  onTasteChange: () => void;
-}
-export default function TasteMixer({
-  taste,
-  setTaste,
-  variety,
-  setVariety,
-  engine,
-  candidateCount,
-  ratingCount,
-  onClearRatings,
-  onClose,
-  onShowStories,
-  onTasteChange,
-}: Props) {
+import { setTrailerSound, useTrailerSound } from '@/lib/trailer-sound';
+
+export default function TasteMixer() {
+  const app = useApp();
+  const { engine, candidateCount } = useEngine();
+  const sound = useTrailerSound();
+  const value = app.prefs.titleLanguage;
+  const router = useRouter();
+  const close = () => app.setMixerOpen(false);
   return (
-    <Modal title="Tune your taste" onClose={onClose}>
+    <Modal title="Settings" onClose={close}>
       <div className="mixer-heading">
         <span className="mixer-icon">
-          <Sparkles size={25} />
+          <Settings2 size={25} />
         </span>
-        <div className="eyebrow">YOUR TASTE IS THE SECRET INGREDIENT</div>
-        <h2>A little more you.</h2>
-        <p>Mix what moves you. Your recommendations update as you go.</p>
+        <h2>Settings</h2>
+        <p>Make it yours. Everything saves in this browser and applies instantly.</p>
       </div>
+      <section className="settings-group" aria-labelledby="display-settings">
+        <h3 id="display-settings">Display</h3>
+        <fieldset className="segmented">
+          <legend>Show titles in</legend>
+          {(
+            [
+              ['english', 'English'],
+              ['romaji', 'Romaji'],
+              ['native', 'Original script'],
+            ] as const
+          ).map(([value, label]) => (
+            <label key={value} className={app.prefs.titleLanguage === value ? 'selected' : ''}>
+              <input
+                type="radio"
+                name="title-language"
+                value={value}
+                checked={app.prefs.titleLanguage === value}
+                onChange={() => app.setPrefs({ titleLanguage: value })}
+              />
+              {label}
+            </label>
+          ))}
+        </fieldset>
+        <p className="setting-hint">
+          Example:{' '}
+          {value === 'english'
+            ? 'Frieren: Beyond Journey’s End'
+            : value === 'romaji'
+              ? 'Sousou no Frieren'
+              : '葬送のフリーレン'}
+        </p>
+        <label className="switch-row">
+          <span>
+            <strong>Play trailers on hover</strong>
+            <small>Rest the pointer on a cover or highlight to watch its trailer.</small>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={app.prefs.hoverPreviews}
+            onChange={(e) => app.setPrefs({ hoverPreviews: e.target.checked })}
+          />
+        </label>
+        <label className="switch-row">
+          <span>
+            <strong>Trailer sound</strong>
+            <small>Start trailers with sound. Your browser may still mute the first one.</small>
+          </span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={sound}
+            onChange={(e) => setTrailerSound(e.target.checked)}
+          />
+        </label>
+      </section>
+      <section className="settings-group" aria-labelledby="taste-settings">
+        <h3 id="taste-settings">Taste</h3>
+        <p className="setting-hint">Drag the sliders. Your matches update straight away.</p>
+      </section>
       <div className="taste-sliders">
         {dimensions.map((d, i) => (
           <label key={d}>
             <span>
               {d}
-              <strong>{Math.round(taste[i] * 100)}%</strong>
+              <strong>{Math.round(app.taste[i] * 100)}%</strong>
             </span>
             <input
               type="range"
               min="0"
               max="100"
-              value={Math.round(taste[i] * 100)}
-              onChange={(e) => {
-                setTaste(
+              value={Math.round(app.taste[i] * 100)}
+              onChange={(e) =>
+                app.setTaste(
                   (t) => t.map((v, j) => (i === j ? Number(e.target.value) / 100 : v)) as Taste,
-                );
-                onTasteChange();
-              }}
+                )
+              }
             />
           </label>
         ))}
       </div>
       <label className="variety-control">
         <span>
-          A little familiar <strong>A little unexpected</strong>
+          Stick to what I like <strong>Surprise me more</strong>
         </span>
         <input
           type="range"
           min="0"
           max="3"
           step="0.1"
-          value={variety}
-          onChange={(e) => setVariety(Number(e.target.value))}
+          value={app.variety}
+          onChange={(e) => app.setVariety(Number(e.target.value))}
         />
       </label>
       <div className="engine-note">
@@ -79,14 +122,14 @@ export default function TasteMixer({
         <div>
           <strong>{engine}</strong>
           <p>
-            Your ratings, saved stories, and moods shape these picks. {candidateCount} available
-            stories · {ratingCount} private ratings. More feedback improves the estimate. Calculated
-            on your device; match scores are not predicted ratings.
+            Ranking {candidateCount} titles using {app.feedback.length} of your ratings, your
+            library and these sliders, all inside your browser. The more you rate, the better we get
+            at this.
           </p>
         </div>
       </div>
-      {ratingCount > 0 && (
-        <button className="text-button" onClick={onClearRatings}>
+      {app.feedback.length > 0 && (
+        <button className="text-button" onClick={app.clearRatings}>
           Forget my ratings
         </button>
       )}
@@ -94,9 +137,8 @@ export default function TasteMixer({
         <button
           className="text-button"
           onClick={() => {
-            setTaste(defaultTaste);
-            setVariety(1.2);
-            onTasteChange();
+            app.setTaste(defaultTaste);
+            app.setVariety(1.2);
           }}
         >
           Reset taste
@@ -104,10 +146,11 @@ export default function TasteMixer({
         <button
           className="primary-button"
           onClick={() => {
-            onShowStories();
+            close();
+            router.push('/for-you');
           }}
         >
-          Show me my stories <ArrowRight size={16} />
+          Show my matches <ArrowRight size={16} />
         </button>
       </div>
     </Modal>

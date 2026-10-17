@@ -1,0 +1,35 @@
+# Used when a maintainer opens a story thread by hand. Giscus creates most threads itself,
+# titled with the page's term (for example "anilist-154587"), so readers rarely see this form.
+title: 'anilist-'
+labels: ['story thread']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Story threads are named after the title's AniList ID (`anilist-<id>`), or `mal-<section>-<id>` when only a MyAnimeList ID exists. Keep that format so the site can find the thread.
+  - type: input
+    id: link
+    attributes:
+      label: animepoodle page
+      description: The title's page on the site.
+      placeholder: https://animepoodle.pages.dev/story?format=Anime&anilist=154587
+    validations:
+      required: true
+  - type: dropdown
+    id: section
+    attributes:
+      label: Section
+      options:
+        - Anime
+        - Chinese anime
+        - Manga
+        - Manhwa
+        - Manhua
+    validations:
+      required: true
+  - type: textarea
+    id: opener
+    attributes:
+      label: Kick things off
+      description: Why are you opening this thread? Mark any spoilers.
+      placeholder: Just finished season 1 and I need to talk about the ending…
