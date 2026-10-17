@@ -222,51 +222,53 @@ function Story({ params }: { params: StoryParams }) {
             <img src={item.image} alt={`${app.name(item)} cover`} />
           </div>
           <div className="story-title-block">
-            <div className="story-chips">
-              <span className="chip chip-sky">{kindLabel(item.mediaFormat)}</span>
-              {item.status && <span className="chip">{releaseLabel[item.status]}</span>}
-              <span className="chip">{when}</span>
-              <span className="chip chip-yellow">
-                <Star size={13} fill="currentColor" />{' '}
-                {item.rating ? item.rating.toFixed(1) : 'No score yet'}
-              </span>
+            <div className="story-title-main">
+              <div className="story-chips">
+                <span className="chip chip-sky">{kindLabel(item.mediaFormat)}</span>
+                {item.status && <span className="chip">{releaseLabel[item.status]}</span>}
+                <span className="chip">{when}</span>
+                <span className="chip chip-yellow">
+                  <Star size={13} fill="currentColor" />{' '}
+                  {item.rating ? item.rating.toFixed(1) : 'No score yet'}
+                </span>
+              </div>
+              <h1>{app.name(item)}</h1>
+              {otherNames.length > 0 && <p className="original-title">{otherNames.join(' / ')}</p>}
+              {!!profile?.rankings?.length && (
+                <ul className="rank-badges" aria-label="AniList rankings">
+                  {profile.rankings.map((r) => (
+                    <li key={r.label} className={r.kind === 'RATED' ? 'rated' : 'popular'}>
+                      <Award size={14} /> #{r.rank} {r.label.toLowerCase()}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {profile?.nextEpisode && (
+                <p className="next-episode">
+                  <CalendarClock size={16} /> Episode {profile.nextEpisode.episode} airs{' '}
+                  {countdown(profile.nextEpisode.airingAt)}
+                </p>
+              )}
+              <div className="story-actions">
+                <StatusMenu item={item} />
+                <label className="story-rating">
+                  <span>Your rating</span>
+                  <select
+                    aria-label="My rating"
+                    value={rating}
+                    onChange={(e) => app.rate(item, Number(e.target.value))}
+                  >
+                    <option value="0">Not rated</option>
+                    <option value="1">1 ★ Not for me</option>
+                    <option value="2">2 ★ It was meh</option>
+                    <option value="3">3 ★ Decent</option>
+                    <option value="4">4 ★ Really liked it</option>
+                    <option value="5">5 ★ Loved it, no notes</option>
+                  </select>
+                </label>
+              </div>
             </div>
-            <h1>{app.name(item)}</h1>
-            {otherNames.length > 0 && <p className="original-title">{otherNames.join(' / ')}</p>}
-            {!!profile?.rankings?.length && (
-              <ul className="rank-badges" aria-label="AniList rankings">
-                {profile.rankings.map((r) => (
-                  <li key={r.label} className={r.kind === 'RATED' ? 'rated' : 'popular'}>
-                    <Award size={14} /> #{r.rank} {r.label.toLowerCase()}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {profile?.nextEpisode && (
-              <p className="next-episode">
-                <CalendarClock size={16} /> Episode {profile.nextEpisode.episode} airs{' '}
-                {countdown(profile.nextEpisode.airingAt)}
-              </p>
-            )}
-            <div className="story-actions">
-              <StatusMenu item={item} />
-              <HypeButton item={item} />
-              <label className="story-rating">
-                <span>Your rating</span>
-                <select
-                  aria-label="My rating"
-                  value={rating}
-                  onChange={(e) => app.rate(item, Number(e.target.value))}
-                >
-                  <option value="0">Not rated</option>
-                  <option value="1">1 ★ Not for me</option>
-                  <option value="2">2 ★ It was meh</option>
-                  <option value="3">3 ★ Decent</option>
-                  <option value="4">4 ★ Really liked it</option>
-                  <option value="5">5 ★ Loved it, no notes</option>
-                </select>
-              </label>
-            </div>
+            <HypeButton item={item} hero />
           </div>
         </div>
       </section>

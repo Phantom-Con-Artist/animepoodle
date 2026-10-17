@@ -4497,6 +4497,43 @@ a.cast-person:hover strong {
   outline: 3px solid var(--sky);
   outline-offset: 3px;
 }
+.story-title-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.story-title-main {
+  min-width: 0;
+}
+.hype-hero {
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  padding: 18px 20px;
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow);
+  font-family: var(--font-head);
+  font-size: 22px;
+  white-space: normal;
+  text-align: center;
+}
+.hype-hero small {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+}
+.hype-hero:not(:disabled):active {
+  transform: translate(3px, 3px);
+}
+@media (min-width: 768px) {
+  .story-title-block {
+    grid-template-columns: minmax(0, 1fr) clamp(170px, 18vw, 240px);
+    gap: 20px;
+  }
+  .hype-hero {
+    font-size: clamp(22px, 2.2vw, 30px);
+  }
+}
 .hype-compact {
   padding: 6px 9px;
   font-size: 12px;
