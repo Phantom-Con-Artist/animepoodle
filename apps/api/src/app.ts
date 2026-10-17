@@ -32,7 +32,36 @@ app.use('/api/*', async (c, next) => {
 });
 app.route('/api/hype', hypeApp);
 app.route('/api/read', readApp);
-app.get('/api/health', (c) => c.json({ ok: true, service: 'animepoodle-api' }));
+// `?upstream=1` also asks AniList for one tiny record and reports how it answered, so a
+// deployment can be checked from where it runs (shared Cloudflare egress, not a laptop).
+let upstreamCheck: { at: number; value: unknown } | null = null;
+app.get('/api/health', async (c) => {
+  if (!c.req.query('upstream')) return c.json({ ok: true, service: 'animepoodle-api' });
+  if (!upstreamCheck || Date.now() - upstreamCheck.at > 30000) {
+    const started = Date.now();
+    let anilist: Record<string, unknown>;
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ query: '{Media(id:1){id}}' }),
+        signal: AbortSignal.timeout(10000),
+      });
+      anilist = {
+        status: res.status,
+        ms: Date.now() - started,
+        retryAfter: res.headers.get('Retry-After'),
+        rateLimitRemaining: res.headers.get('X-RateLimit-Remaining'),
+        body: (await res.text()).slice(0, 300),
+      };
+    } catch (error) {
+      anilist = { status: 0, error: String(error).slice(0, 200) };
+    }
+    upstreamCheck = { at: Date.now(), value: { ok: anilist.status === 200, anilist } };
+  }
+  c.header('Cache-Control', 'no-store');
+  return c.json({ service: 'animepoodle-api', ...(upstreamCheck.value as object) });
+});
 app.get('/api/catalog', (c) =>
   c.redirect(
     `/api/${c.req.query('q') ? 'search' : 'discover'}?${new URL(c.req.url).searchParams}`,

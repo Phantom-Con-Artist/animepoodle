@@ -323,8 +323,10 @@ export async function requestAniList(document: string, variables: Record<string,
   }
   if (res.status === 404)
     throw new CatalogError('No AniList details are available for this story yet.', 404);
-  if (!res.ok)
+  if (!res.ok) {
+    console.warn(`AniList answered ${res.status} ${res.headers.get('cf-ray') || ''}`.trim());
     throw new CatalogError('AniList is unavailable right now. Please try again shortly.');
+  }
   return await res.json();
 }
 const detailsQuery = `query StoryExtras($id:Int,$idMal:Int,$type:MediaType!,$page:Int!){
