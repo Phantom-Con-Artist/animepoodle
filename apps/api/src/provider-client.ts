@@ -33,6 +33,9 @@ export function createProviderClient(name: string, base: string, ttl: number, sp
           signal: AbortSignal.timeout(7000),
         });
       } catch {
+        // Unreachable or timing out: let queued requests fail at once instead of each
+        // waiting out its own timeout.
+        cooldown = Date.now() + 20000;
         throw new CatalogError(`${name} is unavailable right now. Please try again shortly.`);
       }
       if (res.status === 429) {

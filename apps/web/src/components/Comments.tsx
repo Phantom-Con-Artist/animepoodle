@@ -8,7 +8,7 @@ const config = {
   repo: process.env.NEXT_PUBLIC_GISCUS_REPO || 'Phantom-Con-Artist/animepoodle',
   repoId: process.env.NEXT_PUBLIC_GISCUS_REPO_ID || 'R_kgDOVNeddA',
   category: process.env.NEXT_PUBLIC_GISCUS_CATEGORY || 'Story threads',
-  categoryId: process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID || '',
+  categoryId: process.env.NEXT_PUBLIC_GISCUS_CATEGORY_ID || 'DIC_kwDOVNeddM4DIyDc',
 };
 
 function giscusTheme() {

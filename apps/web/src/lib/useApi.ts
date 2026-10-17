@@ -6,7 +6,13 @@ const api = process.env.NEXT_PUBLIC_API_URL || '';
 const store = 'animepoodle-api:';
 
 export async function getJson<T>(url: string, fallback: string): Promise<T> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  } catch {
+    // Timeouts and dropped connections surface as browser jargon ("signal timed out").
+    throw new Error(fallback);
+  }
   if (!res.headers.get('content-type')?.includes('application/json')) throw new Error(fallback);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || fallback);

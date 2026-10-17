@@ -1,5 +1,5 @@
 import { type Title, type MediaExtras, type SearchMatches } from '@animepoodle/shared';
-import { searchAniListTerms, discoverAniList } from './anilist';
+import { searchAniListTerms, discoverAniList, CatalogError } from './anilist';
 import { searchJikan, getJikanExtras, discoverJikan } from './jikan';
 import { getAnimeThemes } from './animethemes';
 import { searchMangaDex } from './mangadex';
@@ -24,6 +24,8 @@ export async function searchCatalog(q: string, format: string, broaden = false, 
   try {
     result = await searchAniListCatalog(q, format, broaden, status);
   } catch (error) {
+    // A blocked server answers at once, so the visitor's browser can take over.
+    if (error instanceof CatalogError && error.status === 502) throw error;
     const only = (await mangadex).filter((t) => status === 'ALL' || t.status === status);
     if (!only.length) throw error;
     return {
@@ -47,6 +49,8 @@ async function searchAniListCatalog(q: string, format: string, broaden: boolean,
   try {
     ({ items: primary, matched } = await searchAniListTerms(q, format, status));
   } catch (error) {
+    // AniList refused this server: skip the slower fallbacks so the browser can retry.
+    if (error instanceof CatalogError && error.status === 502) throw error;
     primaryError = error;
   }
   if (!broaden && !primaryError && primary.length)
@@ -141,7 +145,8 @@ export async function discoverCatalog(format: string, status: string, sort: stri
   try {
     return await discoverAniList(format, status, sort);
   } catch (error) {
-    if (format === 'Donghua') throw error;
+    if (format === 'Donghua' || (error instanceof CatalogError && error.status === 502))
+      throw error;
     try {
       const items = await discoverJikan(format, status, sort);
       if (!items.length) throw error;
