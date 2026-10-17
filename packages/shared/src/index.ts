@@ -13,7 +13,9 @@ export interface Title {
   id: number;
   anilistId?: number;
   malId?: number;
-  source?: 'AniList' | 'Jikan';
+  source?: 'AniList' | 'Jikan' | 'MangaDex';
+  /** MangaDex manga ID, for series read here (and those only MangaDex lists). */
+  mangadexId?: string;
   bannerImage?: string | null;
   tags?: FeatureTag[];
   mediaFormat?: string;

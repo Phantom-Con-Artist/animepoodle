@@ -26,7 +26,10 @@ test('health and unknown routes expose predictable JSON', async () => {
 test('AniList search forwards filters, normalizes results, and caches requests', async () => {
   const original = globalThis.fetch;
   let calls = 0;
-  globalThis.fetch = async (_url, init) => {
+  globalThis.fetch = async (url, init) => {
+    // Manhwa searches also ask MangaDex for series AniList lacks; none here.
+    if (String(url).startsWith('https://api.mangadex.org/'))
+      return Response.json({ result: 'ok', data: [] });
     calls++;
     const body = JSON.parse(init!.body as string);
     assert.equal(body.variables.type, 'MANGA');

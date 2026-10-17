@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { app } from './app.js';
-import { parsePageUrl } from './mangadex.js';
+import { mangaDexTitle, parseCoverUrl, parsePageUrl } from './mangadex.js';
+
+type MdManga = Parameters<typeof mangaDexTitle>[0];
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const hash = '0123456789abcdef0123456789abcdef';
@@ -110,6 +112,99 @@ test('official chapters come back as links, scanlations as same-origin pages', a
       `/api/read/page?u=${encodeURIComponent(`https://node.mangadex.network/tok/data-saver/${hash}/a.jpg`)}`,
     );
     assert.ok(parsePageUrl(new URL(scan.pages[0], 'http://x').searchParams.get('u')!));
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('MangaDex series become catalog titles; only MangaDex-only ones join search', async () => {
+  const base: MdManga = {
+    id: uuid(20),
+    attributes: {
+      title: { 'ko-ro': 'Agnyeoneun' },
+      altTitles: [{ en: 'The Villainess Is Worshipped' }, { ko: '악녀는' }],
+      links: null,
+      availableTranslatedLanguages: ['en'],
+      description: { en: 'A story.\n\n---\n**Links:** [Official](https://x.example)' },
+      originalLanguage: 'ko',
+      status: 'ongoing',
+      year: 2022,
+      lastChapter: null,
+      tags: [
+        { attributes: { name: { en: 'Romance' }, group: 'genre' } },
+        { attributes: { name: { en: 'Villainess' }, group: 'theme' } },
+      ],
+    },
+    relationships: [
+      { id: uuid(21), type: 'cover_art', attributes: { fileName: `${uuid(22)}.jpg` } },
+    ],
+  };
+  const t = mangaDexTitle(base);
+  assert.equal(t.format, 'Manhwa');
+  assert.equal(t.title, 'The Villainess Is Worshipped');
+  assert.deepEqual(t.titles, {
+    english: 'The Villainess Is Worshipped',
+    romaji: 'Agnyeoneun',
+    native: '악녀는',
+  });
+  assert.equal(t.status, 'RELEASING');
+  assert.deepEqual(t.genres, ['Romance']);
+  assert.equal(t.description, 'A story.');
+  assert.ok(t.id < -1e12 && Number.isSafeInteger(t.id));
+  assert.ok(parseCoverUrl(decodeURIComponent(t.image.split('u=')[1])));
+  assert.equal(parseCoverUrl('https://uploads.mangadex.org/data/x.jpg'), null);
+  // A MangaDex entry that links to AniList takes the AniList-style identity.
+  const linked = mangaDexTitle({
+    ...base,
+    attributes: { ...base.attributes, links: { al: '55', mal: '66' } },
+  });
+  assert.equal(linked.id, 66);
+  assert.equal(linked.anilistId, 55);
+
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).startsWith('https://api.mangadex.org/manga?title='))
+      return Response.json({
+        data: [
+          base,
+          { ...base, id: uuid(23), attributes: { ...base.attributes, links: { al: '9' } } },
+          {
+            ...base,
+            id: uuid(24),
+            attributes: { ...base.attributes, title: { en: 'Same As AniList' }, altTitles: [] },
+          },
+        ],
+      });
+    return Response.json({
+      data: {
+        Page: {
+          media: [
+            {
+              id: 9,
+              idMal: null,
+              title: { english: 'Same As AniList', romaji: 'Onaji', native: null },
+              type: 'MANGA',
+              countryOfOrigin: 'KR',
+              startDate: { year: 2020 },
+              averageScore: 70,
+              episodes: null,
+              chapters: 10,
+              genres: [],
+              description: '',
+              coverImage: { large: 'https://s4.anilist.co/c.jpg', color: null },
+            },
+          ],
+        },
+      },
+    });
+  };
+  try {
+    const data = await (await app.request('/api/search?q=villainess-merge&format=Manhwa')).json();
+    assert.equal(data.source, 'AniList + MangaDex');
+    assert.deepEqual(
+      data.items.map((i: { title: string }) => i.title),
+      ['Same As AniList', 'The Villainess Is Worshipped'],
+    );
   } finally {
     globalThis.fetch = original;
   }

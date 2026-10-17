@@ -35,6 +35,7 @@ export const readHref = (chapterId: string, item?: Title | null) => {
     p.set('format', item.format);
     if (item.anilistId) p.set('anilist', String(item.anilistId));
     if (item.malId) p.set('mal', String(item.malId));
+    if (item.mangadexId && !item.anilistId && !item.malId) p.set('md', item.mangadexId);
   }
   return `/read?${p}`;
 };

@@ -6,9 +6,11 @@ import {
   type ChapterListResponse,
   type ChapterPagesResponse,
   type ChapterUpdatesResponse,
+  type MediaDetails,
   type ReadingSeries,
+  type Title,
 } from '@animepoodle/shared';
-import { CatalogError } from './anilist.js';
+import { CatalogError, featuresFor } from './anilist.js';
 
 /**
  * MangaDex reading. MangaDex sends no CORS headers and breaks hotlinked images, so every
@@ -99,7 +101,14 @@ interface MdManga {
     altTitles?: Record<string, string>[];
     links: Record<string, string> | null;
     availableTranslatedLanguages: (string | null)[];
+    description?: Record<string, string>;
+    originalLanguage?: string;
+    status?: string;
+    year?: number | null;
+    lastChapter?: string | null;
+    tags?: { attributes: { name: Record<string, string>; group: string } }[];
   };
+  relationships?: { id: string; type: string; attributes?: { fileName?: string } }[];
 }
 const httpsLink = (url: string | undefined) => {
   try {
@@ -142,23 +151,138 @@ export function findSeries(
           (anilistId && m.attributes.links?.al === String(anilistId)) ||
           (malId && m.attributes.links?.mal === String(malId)),
       );
-      if (!match) continue;
-      const a = match.attributes;
-      const official = [
-        ['engtl', 'Official English release'],
-        ['raw', 'Original publisher'],
-      ]
-        .map(([key, label]) => ({ label, url: httpsLink(a.links?.[key]) }))
-        .filter((l): l is { label: string; url: string } => !!l.url);
-      return {
-        id: match.id,
-        title: a.title.en || Object.values(a.title)[0] || title,
-        languages: a.availableTranslatedLanguages.filter((l): l is string => !!l).sort(),
-        official,
-        url: `https://mangadex.org/title/${match.id}`,
-      };
+      if (match) return toSeries(match);
     }
     return null;
+  });
+}
+function toSeries(match: MdManga): ReadingSeries {
+  const a = match.attributes;
+  const official = [
+    ['engtl', 'Official English release'],
+    ['raw', 'Original publisher'],
+  ]
+    .map(([key, label]) => ({ label, url: httpsLink(a.links?.[key]) }))
+    .filter((l): l is { label: string; url: string } => !!l.url);
+  return {
+    id: match.id,
+    title: a.title.en || Object.values(a.title)[0] || 'Untitled',
+    languages: a.availableTranslatedLanguages.filter((l): l is string => !!l).sort(),
+    official,
+    url: `https://mangadex.org/title/${match.id}`,
+  };
+}
+const byIdMemo = memo<MdManga>(3600000, 500);
+const mangaById = (id: string) =>
+  byIdMemo(id, async () => (await md<{ data: MdManga }>(`/manga/${id}?includes[]=cover_art`)).data);
+
+/* MangaDex as a catalog: series AniList doesn't list, and the latest uploads. */
+const languagesFor: Record<string, string[]> = {
+  Manga: ['ja'],
+  Manhwa: ['ko'],
+  Manhua: ['zh', 'zh-hk'],
+};
+const formatFor = (lang?: string): Title['format'] =>
+  lang === 'ko' ? 'Manhwa' : lang === 'zh' || lang === 'zh-hk' ? 'Manhua' : 'Manga';
+const statusFor: Record<string, Title['status']> = {
+  ongoing: 'RELEASING',
+  completed: 'FINISHED',
+  hiatus: 'HIATUS',
+  cancelled: 'CANCELLED',
+};
+const plain = (text: string) =>
+  text
+    .split(/\n-{3,}|\n\*\*\*/)[0]
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_#>]+/g, '')
+    .trim();
+// A stable negative number from the UUID, far below AniList's range, for Title.id.
+const numericId = (uuid: string) =>
+  -(1e13 + (parseInt(uuid.replace(/-/g, '').slice(0, 11), 16) % 1e12));
+// Covers are shown by plain <img> anywhere in the app, so they carry the API's own origin.
+let publicOrigin = '';
+export const setPublicOrigin = (origin: string) => {
+  publicOrigin ||= origin;
+};
+export const coverUrl = (mangaId: string, file: string) =>
+  `${publicOrigin}/api/read/cover?u=${encodeURIComponent(`https://uploads.mangadex.org/covers/${mangaId}/${file}.512.jpg`)}`;
+
+export function mangaDexTitle(m: MdManga): Title {
+  const a = m.attributes;
+  const al = Number(a.links?.al) || undefined;
+  const mal = Number(a.links?.mal) || undefined;
+  const alt = (lang: string) => a.altTitles?.find((t) => t[lang])?.[lang];
+  const original = a.originalLanguage || 'ja';
+  const english = a.title.en || alt('en') || null;
+  const romaji = a.title[`${original}-ro`] || alt(`${original}-ro`) || null;
+  const native = a.title[original] || alt(original) || null;
+  const name = english || romaji || native || Object.values(a.title)[0] || 'Untitled';
+  const tags = a.tags || [];
+  const genres = tags
+    .filter((t) => t.attributes.group === 'genre')
+    .map((t) => t.attributes.name.en);
+  const cover = m.relationships?.find((r) => r.type === 'cover_art')?.attributes?.fileName;
+  const format = formatFor(original);
+  return {
+    id: mal || (al ? -al : numericId(m.id)),
+    anilistId: al,
+    malId: mal,
+    mangadexId: m.id,
+    source: 'MangaDex',
+    trailer: null,
+    bannerImage: null,
+    mediaFormat: tags.some((t) => t.attributes.name.en === 'Oneshot') ? 'ONE_SHOT' : 'MANGA',
+    status: statusFor[a.status || ''],
+    origin: original.toUpperCase().slice(0, 2),
+    title: name,
+    original: native || romaji || name,
+    titles: { english, romaji, native },
+    format,
+    year: a.year || 0,
+    rating: 0,
+    episodes: a.lastChapter ? `${a.lastChapter} chapters` : a.status === 'ongoing' ? 'Ongoing' : '',
+    genres,
+    tags: tags
+      .filter((t) => t.attributes.group === 'theme')
+      .slice(0, 20)
+      .map((t) => ({ name: t.attributes.name.en, rank: 60 })),
+    description: plain(a.description?.en || Object.values(a.description || {})[0] || ''),
+    image: cover ? coverUrl(m.id, cover) : '',
+    color: '#c8c3e6',
+    features: featuresFor(genres),
+  };
+}
+const listQuery = (format: string) =>
+  `limit=32&includes[]=cover_art&${ratings}&hasAvailableChapters=true&${(languagesFor[format] || []).map((l) => `originalLanguage[]=${l}`).join('&')}`;
+const doujinshi = (m: MdManga) =>
+  m.attributes.tags?.some((t) => t.attributes.name.en === 'Doujinshi');
+
+const searchMemo = memo<Title[]>(600000);
+/** Series only MangaDex has (no AniList or MAL link), for search to add after AniList's. */
+export function searchMangaDex(q: string, format: string) {
+  return searchMemo(`${format}:${q.toLowerCase()}`, async () => {
+    if (!languagesFor[format]) return [];
+    const data = await md<{ data: MdManga[] }>(
+      `/manga?title=${encodeURIComponent(q)}&${listQuery(format)}&order[relevance]=desc`,
+    );
+    return data.data
+      .filter((m) => !m.attributes.links?.al && !m.attributes.links?.mal)
+      .map(mangaDexTitle)
+      .filter((t) => t.image);
+  });
+}
+const latestMemo = memo<Title[]>(600000);
+/** Series with the newest uploads in a language, for the Home rail. */
+export function latestMangaDex(format: string, language: string) {
+  return latestMemo(`${format}:${language}`, async () => {
+    const data = await md<{ data: MdManga[] }>(
+      `/manga?${listQuery(format)}&availableTranslatedLanguage[]=${language}&order[latestUploadedChapter]=desc`,
+    );
+    return data.data
+      .filter((m) => !doujinshi(m))
+      .map(mangaDexTitle)
+      .filter((t) => t.image)
+      .slice(0, 24);
   });
 }
 
@@ -256,6 +380,21 @@ export function parsePageUrl(raw: string | undefined) {
   }
 }
 
+const coverPattern =
+  /^\/covers\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:jpe?g|png|gif|webp)(?:\.(?:256|512)\.jpg)?$/;
+export function parseCoverUrl(raw: string | undefined) {
+  try {
+    const url = new URL(raw || '');
+    if (url.protocol !== 'https:' || url.hostname !== 'uploads.mangadex.org' || url.search)
+      return null;
+    return coverPattern.test(url.pathname)
+      ? { url: url.toString(), host: url.hostname, cacheKey: url.toString() }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 const updatesMemo = memo<ChapterUpdatesResponse>(600000);
 /**
  * New chapters since `since`. Two requests find which series uploaded anything at all;
@@ -336,6 +475,14 @@ readApp.get('/series', async (c) => {
     .queries('title')
     ?.map((t) => t.trim().slice(0, 120))
     .filter((t) => t.length >= 1);
+  const direct = c.req.query('md');
+  if (mangaDexId(direct)) {
+    try {
+      return cached({ series: toSeries(await mangaById(direct!)) }, 21600);
+    } catch (error) {
+      return fail(error);
+    }
+  }
   if ((!anilist && !mal) || !titles?.length)
     return c.json({ error: 'A title and an AniList or MAL ID are needed.' }, 400);
   try {
@@ -391,9 +538,13 @@ readApp.get('/updates', async (c) => {
     return fail(error);
   }
 });
-readApp.get('/page', async (c) => {
-  const page = parsePageUrl(c.req.query('u'));
-  if (!page) return c.json({ error: 'Not a MangaDex page.' }, 400);
+async function proxyImage(
+  c: {
+    executionCtx: unknown;
+    json: (data: unknown, status?: number, headers?: Record<string, string>) => Response;
+  },
+  page: { url: string; host: string; cacheKey: string },
+) {
   let ctx: Ctx | undefined;
   try {
     ctx = c.executionCtx as Ctx;
@@ -429,7 +580,7 @@ readApp.get('/page', async (c) => {
       }),
     );
   if (!res || !body)
-    return c.json({ error: 'This page didn’t load. Try again.' }, 502, {
+    return c.json({ error: 'This image didn’t load. Try again.' }, 502, {
       'Cache-Control': 'no-store',
     });
   const type = res.headers.get('Content-Type') || 'image/jpeg';
@@ -442,4 +593,43 @@ readApp.get('/page', async (c) => {
   });
   if (cache) later(ctx, cache.put(key, out.clone()));
   return out;
+}
+readApp.get('/page', async (c) => {
+  const page = parsePageUrl(c.req.query('u'));
+  if (!page) return c.json({ error: 'Not a MangaDex page.' }, 400);
+  return proxyImage(c, page);
+});
+readApp.get('/cover', async (c) => {
+  const cover = parseCoverUrl(c.req.query('u'));
+  if (!cover) return c.json({ error: 'Not a MangaDex cover.' }, 400);
+  return proxyImage(c, cover);
+});
+readApp.get('/latest', async (c) => {
+  const format = c.req.query('format') || '';
+  const lang = language(c.req.query('lang')) || 'en';
+  if (!languagesFor[format]) return c.json({ error: 'Pick a reading section.' }, 400);
+  try {
+    return cached({ items: await latestMangaDex(format, lang), source: 'MangaDex' }, 600);
+  } catch (error) {
+    return fail(error);
+  }
+});
+readApp.get('/title/:id', async (c) => {
+  const id = c.req.param('id');
+  if (!mangaDexId(id)) return c.json({ error: 'Invalid MangaDex ID.' }, 400);
+  try {
+    const media = mangaDexTitle(await mangaById(id));
+    const details: MediaDetails = {
+      anilistId: 0,
+      malId: null,
+      url: `https://mangadex.org/title/${id}`,
+      trailer: null,
+      reviews: [],
+      pageInfo: { currentPage: 1, hasNextPage: false },
+      media,
+    };
+    return cached(details, 3600);
+  } catch (error) {
+    return fail(error);
+  }
 });

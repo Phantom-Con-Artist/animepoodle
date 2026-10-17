@@ -77,14 +77,18 @@ export default function StoryPage() {
 
 function Story({ params }: { params: StoryParams }) {
   const app = useApp();
-  const mediaId = params.anilistId ? -params.anilistId : params.malId!;
+  const mediaId = params.anilistId ? -params.anilistId : params.malId;
+  // Series only MangaDex lists load from MangaDex; AniList-only sections stay hidden.
+  const mangadexOnly = !mediaId && !!params.mangadexId;
   const [stashed, setStashed] = useState<Title | null>(null);
   const [reviewPage, setReviewPage] = useState(1);
   const [failedBanner, setFailedBanner] = useState<string | null>(null);
   useEffect(() => setStashed(readStash(params)), [params]);
 
   const details = useSWR<MediaDetails, Error>(
-    `${api}/api/media/${mediaId}?format=${params.format}&page=1`,
+    mangadexOnly
+      ? `${api}/api/read/title/${params.mangadexId}`
+      : `${api}/api/media/${mediaId}?format=${params.format}&page=1`,
     (url: string) => getJson<MediaDetails>(url, 'AniList details are unavailable right now.'),
     { revalidateOnFocus: false, dedupingInterval: 300000 },
   );
@@ -215,7 +219,7 @@ function Story({ params }: { params: StoryParams }) {
       : []),
     ...(profile?.characters.length ? [['cast', 'Characters & cast']] : []),
     ...(profile?.relations?.length ? [['related', watch ? 'Seasons & related' : 'Related']] : []),
-    ['media', 'Trailer & reviews'],
+    ...(mangadexOnly ? [] : [['media', 'Trailer & reviews']]),
     ...(malId ? [['mal', 'MAL reviews']] : []),
     ['comments', 'Comments'],
   ];
@@ -521,18 +525,20 @@ function Story({ params }: { params: StoryParams }) {
             </section>
           )}
 
-          <section id="media" className="story-panel">
-            <h2>Trailer, reviews & music</h2>
-            {details.data ? (
-              <StoryExtras key={keyOf(item)} item={item} initial={details.data} />
-            ) : details.error ? (
-              <p className="extras-error">{details.error.message}</p>
-            ) : (
-              <p className="extras-loading" role="status">
-                Loading trailer and reviews…
-              </p>
-            )}
-          </section>
+          {!mangadexOnly && (
+            <section id="media" className="story-panel">
+              <h2>Trailer, reviews & music</h2>
+              {details.data ? (
+                <StoryExtras key={keyOf(item)} item={item} initial={details.data} />
+              ) : details.error ? (
+                <p className="extras-error">{details.error.message}</p>
+              ) : (
+                <p className="extras-loading" role="status">
+                  Loading trailer and reviews…
+                </p>
+              )}
+            </section>
+          )}
 
           {malId && (
             <section id="mal" className="story-panel">
@@ -660,7 +666,9 @@ function Story({ params }: { params: StoryParams }) {
               term={
                 params.anilistId
                   ? `anilist-${params.anilistId}`
-                  : `mal-${params.format.toLowerCase()}-${malId}`
+                  : malId
+                    ? `mal-${params.format.toLowerCase()}-${malId}`
+                    : `mangadex-${params.mangadexId}`
               }
               title={app.name(item)}
             />

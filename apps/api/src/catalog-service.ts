@@ -2,6 +2,7 @@ import { type Title, type MediaExtras, type SearchMatches } from '@animepoodle/s
 import { searchAniListTerms, discoverAniList } from './anilist.js';
 import { searchJikan, getJikanExtras, discoverJikan } from './jikan.js';
 import { getAnimeThemes } from './animethemes.js';
+import { searchMangaDex } from './mangadex.js';
 export function mergeCatalog(primary: Title[], secondary: Title[]): Title[] {
   const merged = new Map<string, Title>();
   for (const item of [...primary, ...secondary]) {
@@ -11,7 +12,35 @@ export function mergeCatalog(primary: Title[], secondary: Title[]): Title[] {
   }
   return [...merged.values()];
 }
+const names = (t: Title) =>
+  [t.title, t.original, t.titles?.english, t.titles?.romaji, t.titles?.native]
+    .filter((n): n is string => !!n)
+    .map((n) => n.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter((n) => n.length > 2);
 export async function searchCatalog(q: string, format: string, broaden = false, status = 'ALL') {
+  // Series only MangaDex lists are searched alongside AniList and come after its results.
+  const mangadex = searchMangaDex(q, format).catch(() => [] as Title[]);
+  let result: Awaited<ReturnType<typeof searchAniListCatalog>>;
+  try {
+    result = await searchAniListCatalog(q, format, broaden, status);
+  } catch (error) {
+    const only = (await mangadex).filter((t) => status === 'ALL' || t.status === status);
+    if (!only.length) throw error;
+    return {
+      items: only,
+      source: 'MangaDex',
+      notice: 'AniList is unavailable right now. Showing MangaDex results.',
+    };
+  }
+  // MangaDex entries without an AniList link can still be AniList titles: skip same names.
+  const known = new Set(result.items.flatMap(names));
+  const extra = (await mangadex).filter(
+    (t) => (status === 'ALL' || t.status === status) && !names(t).some((n) => known.has(n)),
+  );
+  if (!extra.length) return result;
+  return { ...result, items: [...result.items, ...extra], source: `${result.source} + MangaDex` };
+}
+async function searchAniListCatalog(q: string, format: string, broaden: boolean, status: string) {
   let primary: Title[] = [];
   let matched: SearchMatches | undefined;
   let primaryError: unknown;

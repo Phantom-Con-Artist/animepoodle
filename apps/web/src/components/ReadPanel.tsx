@@ -21,6 +21,7 @@ const when = (iso: string) =>
   new Date(iso).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
 
 export function seriesUrl(item: Title) {
+  if (item.mangadexId) return `${api}/api/read/series?md=${item.mangadexId}`;
   const p = new URLSearchParams();
   if (item.anilistId) p.set('anilist', String(item.anilistId));
   if (item.malId) p.set('mal', String(item.malId));
@@ -34,7 +35,7 @@ export function seriesUrl(item: Title) {
 export default function ReadPanel({ item }: { item: Title }) {
   const reading = useReading();
   const series = useSWR(
-    item.anilistId || item.malId ? seriesUrl(item) : null,
+    item.anilistId || item.malId || item.mangadexId ? seriesUrl(item) : null,
     (url: string) => getJson<ReadingSeriesResponse>(url, 'Chapters are unavailable right now.'),
     { revalidateOnFocus: false, dedupingInterval: 3600000 },
   );

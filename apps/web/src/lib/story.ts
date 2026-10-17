@@ -1,4 +1,4 @@
-import { formats, type Format, type Title } from '@animepoodle/shared';
+import { formats, mangaDexId, type Format, type Title } from '@animepoodle/shared';
 import { validTitle } from './local-catalog';
 
 const STASH_KEY = 'animepoodle-story';
@@ -10,6 +10,9 @@ export function storyHref(item: Title) {
   const params = new URLSearchParams({ format: item.format });
   if (item.anilistId) params.set('anilist', String(item.anilistId));
   if (item.malId || item.id > 0) params.set('mal', String(item.malId || item.id));
+  // Series only MangaDex lists have neither ID.
+  if (!item.anilistId && !item.malId && item.id <= 0 && item.mangadexId)
+    params.set('md', item.mangadexId);
   return `/story?${params}`;
 }
 
@@ -24,6 +27,7 @@ export interface StoryParams {
   format: Format;
   anilistId?: number;
   malId?: number;
+  mangadexId?: string;
 }
 
 export function parseStoryParams(search: URLSearchParams): StoryParams | null {
@@ -35,8 +39,10 @@ export function parseStoryParams(search: URLSearchParams): StoryParams | null {
   };
   const anilistId = id('anilist');
   const malId = id('mal');
-  if (!anilistId && !malId) return null;
-  return { format, anilistId, malId };
+  const md = search.get('md');
+  const mangadexId = md && mangaDexId(md) ? md : undefined;
+  if (!anilistId && !malId && !mangadexId) return null;
+  return { format, anilistId, malId, mangadexId };
 }
 
 export function readStash(params: StoryParams): Title | null {
@@ -45,6 +51,7 @@ export function readStash(params: StoryParams): Title | null {
     if (!validTitle(item) || item.format !== params.format) return null;
     if (params.anilistId && item.anilistId === params.anilistId) return item;
     if (params.malId && (item.malId === params.malId || item.id === params.malId)) return item;
+    if (params.mangadexId && item.mangadexId === params.mangadexId) return item;
   } catch {}
   return null;
 }

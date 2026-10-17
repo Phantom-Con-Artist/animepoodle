@@ -1,5 +1,6 @@
 'use client';
 import { useMemo } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Award, Star } from 'lucide-react';
@@ -7,17 +8,19 @@ import {
   moods,
   seasonLabel,
   type AwardsResponse,
+  type CatalogResponse,
   type HighlightsResponse,
   type Title,
 } from '@animepoodle/shared';
 import { useApp } from '@/lib/app-state';
-import { useApi } from '@/lib/useApi';
+import { getJson, useApi } from '@/lib/useApi';
 import { useEngine, useRemember } from '@/lib/taste-engine';
 import { keyOf, stashStory, storyHref } from '@/lib/story';
 import { useReading } from '@/lib/reading';
 import HighlightHero from '../HighlightHero';
 import Rail from '../Rail';
 
+const api = process.env.NEXT_PUBLIC_API_URL || '';
 const isHighlights = (d: HighlightsResponse) => Array.isArray(d?.week) && Array.isArray(d?.year);
 const isAwards = (d: AwardsResponse) => Array.isArray(d?.winners);
 
@@ -65,6 +68,13 @@ export default function HomePage() {
     for (const p of Object.values(reading.series)) if (p.item) byManga.set(p.mangaId, p.item);
     return byManga;
   }, [app.library, reading]);
+  const mangadexLatest = useSWR<CatalogResponse, Error>(
+    section.verb === 'watch'
+      ? null
+      : `${api}/api/read/latest?format=${section.format}&lang=${reading.language || 'en'}`,
+    (url: string) => getJson<CatalogResponse>(url, 'MangaDex is unavailable right now.'),
+    { revalidateOnFocus: false, dedupingInterval: 600000 },
+  );
   const keepReading = Object.values(reading.series)
     .filter((p) => p.item?.format === section.format)
     .sort((a, b) => b.updatedAt - a.updatedAt)
@@ -160,6 +170,17 @@ export default function HomePage() {
         ranked
         href={`/top?year=${year}`}
       />
+      {section.verb !== 'watch' && (
+        <Rail
+          id="mangadex-latest"
+          title="New chapters on MangaDex"
+          description="Freshest uploads first, including series AniList doesn’t list yet."
+          items={mangadexLatest.data?.items}
+          loading={mangadexLatest.isLoading}
+          error={mangadexLatest.error?.message}
+          empty="Nothing new on MangaDex right now. Check back soon."
+        />
+      )}
       {h?.season && (
         <Rail
           id="season"
