@@ -6049,3 +6049,28 @@ img[data-loaded]:not(.reader-page > img) {
 .trailer-panel:fullscreen .trailer-external {
   display: none;
 }
+
+/* Rows that snap start at the page gutter, never flush with the screen edge. */
+.award-list,
+.rail-track {
+  scroll-padding-left: var(--gutter);
+}
+/* Moods fill the whole row rather than leaving an empty column. */
+@media (min-width: 640px) {
+  .mood-grid {
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  }
+}
+/* Every card in a row lines up: titles always take two lines, details one. */
+.rail-track .card-title {
+  min-height: 2.5em;
+}
+.rail-track .card-meta {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.rail-track .card-meta > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
