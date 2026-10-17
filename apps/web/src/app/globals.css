@@ -5614,3 +5614,217 @@ img[data-loaded]:not(.reader-page > img) {
     transition: none;
   }
 }
+
+/* ── Title page on phones: cover beside the title, nothing floating in space ── */
+@media (max-width: 639px) {
+  .story-page .back-link {
+    margin-bottom: 8px;
+  }
+  .story-hero {
+    margin-bottom: 12px;
+  }
+  .story-banner {
+    height: clamp(110px, 32vw, 160px);
+  }
+  /* The title card unwraps: cover on the left, chips, name and other names beside it,
+     everything else full width underneath. */
+  .story-head {
+    grid-template-columns: 96px minmax(0, 1fr);
+    align-items: start;
+    gap: 8px 12px;
+    margin-top: 10px;
+    padding: 0;
+  }
+  .story-title-block,
+  .story-title-main {
+    display: contents;
+  }
+  .story-poster {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    width: 96px;
+    margin-top: -52px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+  }
+  .story-chips,
+  .story-title-block h1,
+  .story-title-block .original-title {
+    grid-column: 2;
+  }
+  .story-chips {
+    gap: 4px;
+  }
+  .story-chips .chip {
+    padding: 1px 8px;
+    font-size: 12px;
+  }
+  .story-title-block h1 {
+    margin: 0;
+    font-size: clamp(22px, 6.4vw, 28px);
+    line-height: 1.1;
+  }
+  .story-title-block .original-title {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .rank-badges,
+  .next-episode,
+  .story-actions,
+  .story-head .hype-hero {
+    grid-column: 1 / -1;
+  }
+  /* One swipeable line of rankings instead of a stack. */
+  .rank-badges {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 2px -16px 0;
+    padding: 0 16px 2px;
+    scrollbar-width: none;
+  }
+  .rank-badges li {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .next-episode {
+    justify-self: start;
+    margin: 0;
+  }
+  .story-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+  .story-actions .status-menu,
+  .story-actions .status-trigger,
+  .story-rating,
+  .story-rating select {
+    width: 100%;
+  }
+  .story-actions .status-trigger {
+    justify-content: center;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+  .story-rating > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .story-rating select {
+    min-height: 44px;
+  }
+  .story-head .hype-hero {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 8px 14px;
+    font-size: 18px;
+  }
+  .story-head .hype-hero svg {
+    width: 22px;
+    height: 22px;
+  }
+  .story-head .hype-hero small {
+    font-size: 12px;
+    opacity: 0.85;
+  }
+  .story-nav {
+    margin-bottom: 12px;
+    padding: 6px 16px;
+  }
+  .story-body,
+  .story-aside {
+    gap: 12px;
+  }
+  .story-layout {
+    gap: 12px;
+  }
+  .story-panel {
+    padding: 14px;
+  }
+  .story-panel > h2,
+  .story-panel > .extras-heading h2 {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  .story-panel > .extras-heading {
+    margin-bottom: 10px;
+  }
+  .story-subhead {
+    margin: 14px 0 6px;
+  }
+  .synopsis {
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .service {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .service > svg:last-child {
+    display: none;
+  }
+  .service .service-dot {
+    width: 30px;
+    height: 30px;
+  }
+  .service strong {
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cast-grid,
+  .related-list {
+    gap: 6px;
+  }
+  .cast {
+    padding: 6px;
+  }
+  .cast-person img,
+  .cast-blank {
+    width: 40px;
+    height: 54px;
+  }
+  .staff-list li,
+  .facts-panel dl div {
+    padding: 6px 0;
+  }
+  /* Recommendations as a poster grid. */
+  .rec-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 8px;
+  }
+  .rec-list a {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 0;
+  }
+  .rec-list img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 0.7;
+  }
+  .rec-list strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 1.25;
+  }
+  .rec-list small {
+    font-size: 11px;
+  }
+}
