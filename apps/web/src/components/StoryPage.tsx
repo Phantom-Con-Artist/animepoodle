@@ -35,6 +35,7 @@ import {
   type StoryParams,
 } from '@/lib/story';
 import StoryExtras from './StoryExtras';
+import ReadPanel from './ReadPanel';
 import Comments from './Comments';
 import StatusMenu from './StatusMenu';
 import HypeButton from './HypeButton';
@@ -198,8 +199,17 @@ function Story({ params }: { params: StoryParams }) {
       : []),
     ...(community.data?.rank ? [['MAL rank', `#${community.data.rank}`] as [string, string]] : []),
   ];
+  const novel = item.mediaFormat === 'NOVEL';
+  // The same story in another medium: anime ↔ manga, manhwa, manhua and light novels.
+  const otherForms = (profile?.relations || [])
+    .filter(
+      (r) => isWatchFormat(r.item.format) !== watch || (r.item.mediaFormat === 'NOVEL') !== novel,
+    )
+    .filter((r) => !['Character', 'Other'].includes(r.relation))
+    .slice(0, 6);
   const sectionsNav = [
     ['overview', 'Overview'],
+    ...(!watch ? [['read', novel ? 'Reading' : 'Read here']] : []),
     ...(streaming.length || official.length
       ? [['where', watch ? 'Where to watch' : 'Where to read']]
       : []),
@@ -327,6 +337,59 @@ function Story({ params }: { params: StoryParams }) {
               </>
             )}
           </section>
+
+          {otherForms.length > 0 && (
+            <section className="story-panel other-forms" aria-label="Other versions">
+              <h2>{watch ? 'Read the story' : 'Also as'}</h2>
+              <ul className="related-list">
+                {otherForms.map((r) => {
+                  const readable = !isWatchFormat(r.item.format);
+                  const kind =
+                    r.item.mediaFormat === 'NOVEL'
+                      ? 'light novel'
+                      : readable
+                        ? r.item.format.toLowerCase()
+                        : kindLabel(r.item.mediaFormat).toLowerCase();
+                  return (
+                    <li key={`${r.relation}-${keyOf(r.item)}`}>
+                      <Link
+                        href={`${storyHref(r.item)}${readable && r.item.mediaFormat !== 'NOVEL' ? '#read' : ''}`}
+                        onClick={() => stashStory(r.item)}
+                      >
+                        <img src={r.item.image} alt="" loading="lazy" />
+                        <span>
+                          <em>
+                            {readable ? 'Read the' : 'Watch the'}
+                            {kind}
+                          </em>
+                          <strong>{app.name(r.item)}</strong>
+                          <small>{r.relation}</small>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+
+          {!watch && (
+            <section id="read" className="story-panel">
+              <h2>{novel ? 'Reading this novel' : 'Read here'}</h2>
+              {novel ? (
+                <p className="panel-note">
+                  Light novel text has no open source we can show, so animepoodle doesn’t host it.
+                  The official places below sell or publish it
+                  {otherForms.some((r) => !isWatchFormat(r.item.format))
+                    ? ', and the manga version above can be read right here'
+                    : ''}
+                  .
+                </p>
+              ) : (
+                <ReadPanel item={item} />
+              )}
+            </section>
+          )}
 
           {(streaming.length > 0 || official.length > 0) && (
             <section id="where" className="story-panel">

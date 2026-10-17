@@ -166,7 +166,7 @@ const feedMemo = memo<ChapterListResponse>(300000);
 export function chapterList(mangaId: string, language: string, offset: number) {
   return feedMemo(`${mangaId}:${language}:${offset}`, async () => {
     const data = await md<{ data: MdChapter[]; total: number; offset: number; limit: number }>(
-      `/manga/${mangaId}/feed?translatedLanguage[]=${language}&order[volume]=desc&order[chapter]=desc&limit=100&offset=${offset}&includes[]=scanlation_group&${ratings}&includeFuturePublishAt=0&includeExternalUrl=1`,
+      `/manga/${mangaId}/feed?translatedLanguage[]=${language}&order[volume]=desc&order[chapter]=desc&limit=100&offset=${offset}&includes[]=scanlation_group&${ratings}&includeFuturePublishAt=0`,
     );
     return { chapters: data.data.map(toChapter), total: data.total, offset, limit: 100 };
   });

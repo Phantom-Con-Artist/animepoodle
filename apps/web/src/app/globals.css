@@ -5093,3 +5093,207 @@ main.reader-message {
     transition: none;
   }
 }
+
+/* Read here: chapters on the title page. */
+.other-forms .related-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+.other-forms .related-list em {
+  background: var(--mint);
+}
+.read-panel {
+  display: grid;
+  gap: 14px;
+}
+.read-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.read-actions .primary-button {
+  flex: 1 1 220px;
+  justify-content: center;
+  min-height: 52px;
+}
+.read-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--yellow);
+  color: var(--on-accent);
+  font-weight: 800;
+  box-shadow: var(--shadow-sm);
+}
+.read-language {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.read-language select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--raised);
+  color: var(--text);
+  font-weight: 700;
+}
+.chapter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--raised);
+}
+.chapter-list li + li {
+  border-top: var(--bw-thin) solid var(--line);
+}
+.chapter-list a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 2px;
+  min-height: 56px;
+  padding: 10px 14px;
+}
+.chapter-list a:hover,
+.chapter-list a:focus-visible {
+  background: var(--surface);
+}
+.chapter-name {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  min-width: 0;
+}
+.chapter-name span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.chapter-list small {
+  grid-column: 1;
+  color: var(--muted);
+  font-size: 12px;
+}
+.chapter-list svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+.chapter-list li.is-read strong {
+  color: var(--muted);
+}
+.chapter-read {
+  color: var(--muted);
+}
+.read-more {
+  justify-self: center;
+}
+.read-official {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.read-official a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: var(--r-chip);
+  font-size: 13px;
+  font-weight: 800;
+}
+.read-credit {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.read-credit a {
+  text-decoration: underline;
+}
+.toc {
+  display: grid;
+  gap: 10px;
+}
+.toc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.toc-head p {
+  flex: 1 1 100%;
+  font-size: 14px;
+}
+.toc-jump input {
+  width: 8.5em;
+  min-height: 40px;
+  padding: 0 12px;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--raised);
+  color: var(--text);
+  font-weight: 700;
+}
+.toc-volume {
+  border: var(--bw-thin) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--raised);
+  overflow: hidden;
+}
+.toc-volume summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 10px;
+  min-height: 52px;
+  padding: 14px;
+  cursor: pointer;
+  list-style: none;
+}
+.toc-volume summary::-webkit-details-marker {
+  display: none;
+}
+.toc-volume summary::after {
+  content: '+';
+  margin-left: auto;
+  font-family: var(--font-head);
+}
+.toc-volume[open] summary::after {
+  content: '–';
+}
+.toc-volume summary small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.toc-volume[open] summary {
+  border-bottom: var(--bw-thin) solid var(--line);
+}
+.toc-volume .chapter-list {
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+}
+.chapter-list li.is-current a {
+  background: var(--yellow);
+  color: var(--on-accent);
+}
+.chapter-list li.is-current small,
+.chapter-list li.is-current .chapter-name span {
+  color: inherit;
+}
