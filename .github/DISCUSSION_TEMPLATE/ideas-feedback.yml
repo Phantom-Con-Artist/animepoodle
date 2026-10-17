@@ -28,4 +28,4 @@ body:
     id: page
     attributes:
       label: Page link (optional)
-      placeholder: https://animepoodle.pages.dev/browse?kind=MOVIE
+      placeholder: https://animepoodle.mavern.in/browse?kind=MOVIE

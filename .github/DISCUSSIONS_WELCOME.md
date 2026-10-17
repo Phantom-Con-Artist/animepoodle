@@ -6,7 +6,7 @@ Copy everything below this comment into a new discussion, then pin it.
 
 Hey, welcome in! 🐩
 
-Every title on [animepoodle](https://animepoodle.pages.dev) has its own thread in this category. They're created automatically the first time someone comments on that title's page, so you don't need to open one yourself. Find the show, manga or manhwa on the site, scroll to **Comments**, and say hello.
+Every title on [animepoodle](https://animepoodle.mavern.in) has its own thread in this category. They're created automatically the first time someone comments on that title's page, so you don't need to open one yourself. Find the show, manga or manhwa on the site, scroll to **Comments**, and say hello.
 
 ### What these threads are for
 
@@ -17,7 +17,7 @@ Every title on [animepoodle](https://animepoodle.pages.dev) has its own thread i
 
 ### A few ground rules
 
-The full version lives at [animepoodle.pages.dev/rules](https://animepoodle.pages.dev/rules#community). The short version:
+The full version lives at [animepoodle.mavern.in/rules](https://animepoodle.mavern.in/rules#community). The short version:
 
 1. **Be kind.** Disagree about the story, not the person.
 2. **Mark your spoilers.** Start with "Spoiler" and the episode or chapter, and tuck the details inside a `<details>` block:

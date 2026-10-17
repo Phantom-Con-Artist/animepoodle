@@ -12,7 +12,7 @@ body:
     attributes:
       label: animepoodle page
       description: The title's page on the site.
-      placeholder: https://animepoodle.pages.dev/story?format=Anime&anilist=154587
+      placeholder: https://animepoodle.mavern.in/story?format=Anime&anilist=154587
     validations:
       required: true
   - type: dropdown

@@ -1,5 +1,10 @@
 {
-  "origins": ["https://animepoodle.pages.dev", "http://localhost:3000", "http://localhost:4173"],
+  "origins": [
+    "https://animepoodle.mavern.in",
+    "https://animepoodle.pages.dev",
+    "http://localhost:3000",
+    "http://localhost:4173"
+  ],
   "originsRegex": ["https://[a-z0-9-]+\\.animepoodle\\.pages\\.dev"],
   "defaultCommentOrder": "newest"
 }

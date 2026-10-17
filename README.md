@@ -20,7 +20,9 @@ npm run preview
 
 Open http://localhost:4173 to test the **actual Pages artifact**, including the edge API. `next start` is not used for this static export.
 
-## Deploy to pages.dev
+## Deploy to Cloudflare Pages
+
+The live site is https://animepoodle.mavern.in (a custom domain on the `animepoodle` Pages project; `animepoodle.pages.dev` also works). If the domain changes, add it to `origins` in `giscus.json`, or comments won't load there.
 
 The compiled `.wasm` file is included in `apps/web/public/wasm/`, so the Cloudflare build needs **no Rust installation**.
 
