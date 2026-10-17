@@ -13,7 +13,8 @@ import {
 import { useApp } from '@/lib/app-state';
 import { useApi } from '@/lib/useApi';
 import { useEngine, useRemember } from '@/lib/taste-engine';
-import { stashStory, storyHref } from '@/lib/story';
+import { keyOf, stashStory, storyHref } from '@/lib/story';
+import { useReading } from '@/lib/reading';
 import HighlightHero from '../HighlightHero';
 import Rail from '../Rail';
 
@@ -53,6 +54,26 @@ export default function HomePage() {
     .map((e) => e.item);
   const personal = app.feedback.length > 0 || app.savedKeys.length > 0;
   const matches = engine.rankedFor(section.format).slice(0, 12);
+  // Reading sections: series opened in the reader, and ones with chapters out since.
+  const reading = useReading();
+  const linked = useMemo(() => {
+    const byManga = new Map<string, Title>();
+    for (const e of Object.values(app.library)) {
+      const id = reading.links[keyOf(e.item)];
+      if (id) byManga.set(id, e.item);
+    }
+    for (const p of Object.values(reading.series)) if (p.item) byManga.set(p.mangaId, p.item);
+    return byManga;
+  }, [app.library, reading]);
+  const keepReading = Object.values(reading.series)
+    .filter((p) => p.item?.format === section.format)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .map((p) => p.item!)
+    .slice(0, 20);
+  const newChapters = Object.entries(reading.fresh)
+    .sort((a, b) => +new Date(b[1].latest.readableAt) - +new Date(a[1].latest.readableAt))
+    .map(([id]) => linked.get(id))
+    .filter((t): t is Title => !!t && t.format === section.format);
   const matchMap = useMemo(
     () => new Map(matches.map((r) => [`${r.item.format}:${r.item.id}`, r])),
     [matches],
@@ -82,6 +103,24 @@ export default function HomePage() {
         </div>
       )}
 
+      {newChapters.length > 0 && (
+        <Rail
+          id="new-chapters"
+          title="New chapters for you"
+          description="Fresh chapters of the series you’re reading. Open one to jump straight in."
+          items={newChapters}
+          href="/library?status=CURRENT"
+        />
+      )}
+      {keepReading.length > 0 && (
+        <Rail
+          id="keep-reading"
+          title="Keep reading"
+          description="Right back to the page you stopped on."
+          items={keepReading}
+          href="/library?status=CURRENT"
+        />
+      )}
       {inProgress.length > 0 && (
         <Rail
           id="continue"

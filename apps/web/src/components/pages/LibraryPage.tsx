@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, List, Star } from 'lucide-react';
-import { kindLabel, type Format } from '@animepoodle/shared';
+import { BookOpen, LayoutGrid, List, Sparkles, Star } from 'lucide-react';
+import { chapterLabel, kindLabel, type Format } from '@animepoodle/shared';
 import { sections, useApp } from '@/lib/app-state';
 import {
   libraryStatuses,
@@ -12,7 +12,9 @@ import {
   type LibraryEntry,
   type LibraryStatus,
 } from '@/lib/library';
-import { stashStory, storyHref } from '@/lib/story';
+import { keyOf, stashStory, storyHref } from '@/lib/story';
+import { useReading } from '@/lib/reading';
+import { readHref } from '../Reader';
 import TitleCard from '../TitleCard';
 import TitleGrid from '../TitleGrid';
 import StatusMenu from '../StatusMenu';
@@ -227,6 +229,10 @@ function LibraryRow({ entry }: { entry: LibraryEntry }) {
   const app = useApp();
   const { item } = entry;
   const rating = app.ratingFor(item);
+  const reading = useReading();
+  const mangaId = reading.links[keyOf(item)];
+  const fresh = mangaId ? reading.fresh[mangaId] : undefined;
+  const progress = mangaId ? reading.series[mangaId] : undefined;
   return (
     <li className="library-row">
       <Link
@@ -250,6 +256,23 @@ function LibraryRow({ entry }: { entry: LibraryEntry }) {
             <Star size={12} fill="currentColor" /> {item.rating ? item.rating.toFixed(1) : '—'}
           </span>
         </div>
+        {(fresh || progress) && (
+          <Link
+            className={fresh ? 'read-new library-read' : 'library-read'}
+            href={readHref(fresh ? fresh.latest.id : progress!.chapterId, item)}
+            onClick={() => stashStory(item)}
+          >
+            {fresh ? (
+              <>
+                <Sparkles size={14} /> New: {chapterLabel(fresh.latest)}
+              </>
+            ) : (
+              <>
+                <BookOpen size={14} /> Continue {chapterLabel(progress!).toLowerCase()}
+              </>
+            )}
+          </Link>
+        )}
         <small>
           Updated{' '}
           {new Date(entry.updatedAt).toLocaleDateString([], {

@@ -5297,3 +5297,31 @@ main.reader-message {
 .chapter-list li.is-current .chapter-name span {
   color: inherit;
 }
+.library-link {
+  position: relative;
+}
+.new-dot {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 14px;
+  height: 14px;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: 50%;
+  background: var(--pink);
+}
+.library-read {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: underline;
+}
+.library-read.read-new {
+  min-height: 36px;
+  padding: 4px 10px;
+  text-decoration: none;
+}

@@ -5,6 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { BookOpen, Check, Dog, Library, Menu, Play, Search, Settings2, X } from 'lucide-react';
 import { isWatchFormat } from '@animepoodle/shared';
 import { sections, useApp } from '@/lib/app-state';
+import { useReading } from '@/lib/reading';
+import { useChapterUpdates } from '@/lib/reading-updates';
 import ThemeToggle from './ThemeToggle';
 import TasteMixer from './TasteMixer';
 
@@ -27,6 +29,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [query, setQuery] = useState('');
   const search = useRef<HTMLInputElement>(null);
   const libraryCount = Object.keys(app.library).length;
+  useChapterUpdates();
+  const newChapters = Object.keys(useReading().fresh).length;
   const watch = isWatchFormat(app.section.format);
   const active = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
@@ -118,11 +122,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               href="/library"
               className={`library-link ${active('/library') ? 'active' : ''}`}
-              aria-label={`My library, ${libraryCount} titles`}
+              aria-label={`My library, ${libraryCount} titles${newChapters ? `, ${newChapters} with new chapters` : ''}`}
             >
               <Library size={18} />
               <span>My library</span>
               {libraryCount > 0 && <span className="count">{libraryCount}</span>}
+              {newChapters > 0 && <span className="new-dot" aria-hidden="true" />}
             </Link>
             <ThemeToggle />
             <button
