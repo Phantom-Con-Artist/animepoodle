@@ -4851,3 +4851,245 @@ a.cast-person:hover strong {
     animation: spin 1s linear infinite;
   }
 }
+
+/* Reader: mobile first, one continuous vertical scroll. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.reader {
+  --reader-w: 820px;
+  --bar-h: 56px;
+  min-height: 100dvh;
+  background: var(--sunken);
+  color: var(--text);
+}
+.reader-top,
+.reader-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.reader-top {
+  top: 0;
+  min-height: var(--bar-h);
+  padding: calc(env(safe-area-inset-top) + 6px) 10px 6px;
+  border-bottom: var(--bw) solid var(--line);
+}
+.reader-bottom {
+  bottom: 0;
+  min-height: var(--bar-h);
+  padding: 6px 10px calc(env(safe-area-inset-bottom) + 6px);
+  border-top: var(--bw) solid var(--line);
+}
+.reader.bars-off .reader-top {
+  transform: translateY(-100%);
+}
+.reader.bars-off .reader-bottom {
+  transform: translateY(100%);
+}
+.reader-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+}
+.reader-icon:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.reader-heading {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+.reader-heading strong,
+.reader-heading small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reader-heading strong {
+  font-family: var(--font-head);
+  font-size: 15px;
+}
+.reader-heading small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.reader-settings {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 10px;
+  display: grid;
+  gap: 8px;
+  width: min(300px, calc(100vw - 20px));
+  padding: 14px;
+  background: var(--surface);
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 800;
+}
+.reader-settings small {
+  color: var(--muted);
+  font-weight: 600;
+}
+.reader-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.reader-toggle button {
+  min-height: 40px;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--raised);
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+}
+.reader-toggle button[aria-pressed='true'] {
+  background: var(--yellow);
+  color: var(--on-accent);
+}
+.reader-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--bar-h) + env(safe-area-inset-top)) 0
+    calc(var(--bar-h) + env(safe-area-inset-bottom));
+}
+.reader-page {
+  position: relative;
+  width: 100%;
+  max-width: var(--reader-w);
+}
+.reader-page img {
+  display: block;
+  width: 100%;
+  height: auto;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* Until a page arrives its height is unknown; hold a tall slot so lazy loading still works. */
+.reader-page.is-loading img,
+.reader-page.is-error img {
+  min-height: min(140vw, 1150px);
+  background: linear-gradient(var(--raised), var(--sunken));
+}
+.reader-page.is-error img {
+  visibility: hidden;
+}
+.reader-retry {
+  position: absolute;
+  inset: 40% 16px auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+}
+.reader-message,
+.reader-end {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 560px;
+  padding: 48px 20px;
+  text-align: center;
+  line-height: 1.6;
+}
+.reader-message h1 {
+  font-size: clamp(22px, 6vw, 30px);
+}
+main.reader-message {
+  margin: 0 auto;
+  min-height: 100dvh;
+  align-content: center;
+}
+.reader-end {
+  padding-top: 32px;
+  padding-bottom: 56px;
+}
+.reader-credit {
+  color: var(--muted);
+  font-size: 14px;
+}
+.reader-credit a {
+  color: var(--text);
+  text-decoration: underline;
+}
+.reader-next {
+  width: 100%;
+  justify-content: center;
+  min-height: 56px;
+  font-size: 17px;
+}
+.reader-caught-up {
+  font-weight: 800;
+}
+.reader-picker {
+  flex: 1;
+  min-width: 0;
+}
+.reader-picker select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: var(--bw-thin) solid var(--line);
+  border-radius: var(--r-btn);
+  background: var(--raised);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 14px;
+}
+.reader-count {
+  flex: none;
+  min-width: 56px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 768px) {
+  .reader-top,
+  .reader-bottom {
+    padding-left: max(16px, calc((100vw - var(--reader-w)) / 2));
+    padding-right: max(16px, calc((100vw - var(--reader-w)) / 2));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reader-top,
+  .reader-bottom {
+    transition: none;
+  }
+}

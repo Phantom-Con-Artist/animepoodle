@@ -66,6 +66,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const links = nav.filter((n) => !n.watchOnly || watch);
+  // The reader takes the whole screen; it has its own bars.
+  if (pathname.startsWith('/read')) return <>{children}</>;
   return (
     <div className="site">
       <a className="skip-link" href="#content">
