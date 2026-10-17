@@ -25,7 +25,11 @@ export function createProviderClient(name: string, base: string, ttl: number, sp
       let res: Response;
       try {
         res = await fetch(`${base}${path}`, {
-          headers: { Accept: 'application/json', 'User-Agent': agent },
+          // Browsers set their own User-Agent; a custom one would force a CORS preflight.
+          headers:
+            typeof window === 'undefined'
+              ? { Accept: 'application/json', 'User-Agent': agent }
+              : { Accept: 'application/json' },
           signal: AbortSignal.timeout(7000),
         });
       } catch {

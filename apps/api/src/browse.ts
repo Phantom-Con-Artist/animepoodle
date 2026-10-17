@@ -224,7 +224,7 @@ export function parseAnimeOfTheYear(wikitext: string): ParsedWinner[] {
 }
 
 const wikiUrl =
-  'https://en.wikipedia.org/w/api.php?action=parse&page=Crunchyroll_Anime_Award_for_Anime_of_the_Year&prop=wikitext&format=json&formatversion=2';
+  'https://en.wikipedia.org/w/api.php?action=parse&page=Crunchyroll_Anime_Award_for_Anime_of_the_Year&prop=wikitext&format=json&formatversion=2&origin=*';
 const awardsMemo = memo<AwardsResponse>(43200000, 2);
 /** Live winners: Wikipedia for who won, AniList for the matching entry. No hand-kept list. */
 export function getAwards(): Promise<AwardsResponse> {
@@ -232,10 +232,14 @@ export function getAwards(): Promise<AwardsResponse> {
     let wikitext: string;
     try {
       const res = await fetch(wikiUrl, {
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'animepoodle/1.0 (https://github.com/Phantom-Con-Artist/animepoodle)',
-        },
+        // Browsers set their own User-Agent; a custom one would force a CORS preflight.
+        headers:
+          typeof window === 'undefined'
+            ? {
+                Accept: 'application/json',
+                'User-Agent': 'animepoodle/1.0 (https://github.com/Phantom-Con-Artist/animepoodle)',
+              }
+            : { Accept: 'application/json' },
         signal: AbortSignal.timeout(8000),
       });
       wikitext = (await res.json()).parse.wikitext;
