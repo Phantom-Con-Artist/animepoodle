@@ -390,7 +390,6 @@ export function displayTitle(item: Title, language: TitleLanguage = 'english') {
   return t.english || t.romaji || item.title;
 }
 
-export * from './hype';
 export * from './reading';
 
 /**

@@ -4489,41 +4489,6 @@ a.cast-person:hover strong {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 }
-
-/* Hype: shared daily points and separate yearly charts. */
-.hype-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 8px 14px;
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-btn);
-  background: var(--pink);
-  color: var(--on-accent);
-  box-shadow: var(--shadow-sm);
-  font-weight: 800;
-  font-size: 14px;
-  line-height: 1.2;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.hype-button:not(:disabled):hover {
-  background: var(--yellow);
-}
-.hype-button:not(:disabled):active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-.hype-button:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-.hype-button:focus-visible {
-  outline: 3px solid var(--sky);
-  outline-offset: 3px;
-}
 .story-title-block {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -4532,309 +4497,14 @@ a.cast-person:hover strong {
 .story-title-main {
   min-width: 0;
 }
-.hype-hero {
-  flex-direction: column;
-  gap: 4px;
-  min-height: 0;
-  padding: 18px 20px;
-  border-radius: var(--r-panel);
-  box-shadow: var(--shadow);
-  font-family: var(--font-head);
-  font-size: 22px;
-  white-space: normal;
-  text-align: center;
-}
-.hype-hero small {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 700;
-}
-.hype-hero:not(:disabled):active {
-  transform: translate(3px, 3px);
-}
 @media (min-width: 768px) {
   .story-title-block {
     grid-template-columns: minmax(0, 1fr) clamp(170px, 18vw, 240px);
     gap: 20px;
   }
-  .hype-hero {
-    font-size: clamp(22px, 2.2vw, 30px);
-  }
-}
-.hype-compact {
-  padding: 6px 9px;
-  font-size: 12px;
-  align-self: start;
-}
-.hype-wallet {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 22px;
-  margin: 24px 0 32px;
-  background: var(--mint);
-  color: var(--on-accent);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-panel);
-  box-shadow: var(--shadow);
-}
-.hype-wallet strong {
-  font-size: 20px;
-}
-.hype-wallet p {
-  margin: 4px 0 0;
-  font-size: 14px;
-}
-.hype-points {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-left: auto;
-}
-.hype-points i {
-  width: 13px;
-  height: 23px;
-  border: var(--bw-thin) solid var(--ink);
-  border-radius: 4px;
-}
-.hype-points .available {
-  background: var(--ink);
-}
-.hype-year {
-  display: inline-block;
-  font-size: 0.55em;
-  padding: 5px 12px;
-  vertical-align: middle;
-  background: var(--yellow);
-  color: var(--on-accent);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-chip);
-}
-.hype-chart-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-.hype-chart-head h2 {
-  font-size: 24px;
-}
-.hype-chart-head p,
-.hype-footnote {
-  color: var(--muted);
-  line-height: 1.7;
-  margin-top: 8px;
-}
-.hype-chart {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 12px;
-}
-.hype-row {
-  display: grid;
-  grid-template-columns: 24px auto minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 12px;
-  row-gap: 0;
-  padding: 16px 12px;
-  background: var(--surface);
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r-panel);
-  box-shadow: var(--shadow-sm);
-}
-.hype-rank {
-  font-family: var(--font-head);
-  font-size: 18px;
-  text-align: center;
-}
-.hype-cover {
-  width: 54px;
-  height: 76px;
-  overflow: hidden;
-  border: var(--bw-thin) solid var(--line);
-  border-radius: 8px;
-}
-.hype-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.hype-title {
-  min-width: 0;
-}
-.hype-title a {
-  font-weight: 800;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-.hype-title a:hover {
-  text-decoration: underline;
-}
-.hype-title small,
-.hype-score small {
-  display: block;
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 5px;
-}
-.hype-score {
-  text-align: right;
-}
-.hype-score strong {
-  font-family: var(--font-head);
-  font-size: 21px;
-}
-.hype-row > .hype-button {
-  grid-column: 3 / -1;
-  justify-self: end;
-  margin-top: 12px;
-}
-/* Hovering a chart entry lifts it, grows the cover and unfolds its details. */
-.hype-row {
-  transition:
-    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 0.3s,
-    background-color 0.3s;
-}
-.hype-cover {
-  align-self: start;
-  transition:
-    width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-    height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.hype-more {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin-top: 6px;
-  padding: 2px 0;
-  background: none;
-  border: 0;
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.hype-more svg {
-  transition: transform 0.3s;
-}
-.hype-row.is-open .hype-more svg {
-  transform: rotate(180deg);
-}
-.hype-details {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition:
-    grid-template-rows 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.3s;
-}
-.hype-details-inner {
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding-top: 14px;
-}
-.hype-details p {
-  color: var(--text);
-  line-height: 1.6;
-  max-width: 75ch;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  overflow: hidden;
-}
-.hype-row.is-open {
-  background: var(--raised);
-  box-shadow: var(--shadow);
-}
-.hype-row.is-open .hype-details {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-.hype-row.is-open .hype-cover {
-  width: 84px;
-  height: 118px;
-}
-@media (hover: hover) {
-  .hype-more {
-    display: none;
-  }
-  .hype-row:hover,
-  .hype-row:focus-within {
-    transform: translate(-2px, -2px);
-    background: var(--raised);
-    box-shadow: var(--shadow);
-  }
-  .hype-row:hover .hype-details,
-  .hype-row:focus-within .hype-details {
-    grid-template-rows: 1fr;
-    opacity: 1;
-    transition-delay: 0.12s;
-  }
-  .hype-row:hover .hype-cover,
-  .hype-row:focus-within .hype-cover {
-    width: 96px;
-    height: 136px;
-    transition-delay: 0.12s;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hype-row,
-  .hype-cover,
-  .hype-details,
-  .hype-more svg {
-    transition: none;
-  }
-}
-.hype-notice {
-  padding: 14px 18px;
-  border: var(--bw-thin) solid var(--line);
-  border-radius: var(--r-btn);
-  background: var(--yellow);
-  color: var(--on-accent);
-  margin-bottom: 18px;
-}
-.hype-footnote {
-  margin-top: 28px;
-  font-size: 13px;
-}
-.hype-verification {
-  margin: 20px 0;
-  min-height: 65px;
 }
 .highlight-nowplaying {
   grid-template-columns: minmax(0, 1fr) auto auto;
-}
-@media (min-width: 640px) {
-  .hype-row {
-    grid-template-columns: 36px auto minmax(0, 1fr) 110px 120px;
-    padding: 18px 22px;
-    column-gap: 18px;
-  }
-  .hype-cover {
-    grid-row: span 2;
-  }
-  .hype-details {
-    grid-column: 3 / -1;
-  }
-  .hype-cover {
-    width: 64px;
-    height: 90px;
-  }
-  .hype-row > .hype-button {
-    grid-column: auto;
-    margin-top: 0;
-  }
 }
 @media (max-width: 480px) {
   .highlight-nowplaying {
@@ -4843,9 +4513,6 @@ a.cast-person:hover strong {
   .highlight-nowplaying > .text-button {
     grid-column: 1 / -1;
     justify-self: end;
-  }
-  .hype-points {
-    margin-left: 0;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -5519,8 +5186,7 @@ main.reader-message {
     justify-content: center;
   }
   .highlight-actions > *,
-  .highlight-actions .status-trigger,
-  .highlight-actions .hype-button {
+  .highlight-actions .status-trigger {
     width: 100%;
     justify-content: center;
   }
@@ -5671,8 +5337,7 @@ img[data-loaded]:not(.reader-page > img) {
   }
   .rank-badges,
   .next-episode,
-  .story-actions,
-  .story-head .hype-hero {
+  .story-actions {
     grid-column: 1 / -1;
   }
   /* One swipeable line of rankings instead of a stack. */
@@ -5716,22 +5381,6 @@ img[data-loaded]:not(.reader-page > img) {
   }
   .story-rating select {
     min-height: 44px;
-  }
-  .story-head .hype-hero {
-    flex-direction: row;
-    justify-content: center;
-    gap: 10px;
-    min-height: 48px;
-    padding: 8px 14px;
-    font-size: 18px;
-  }
-  .story-head .hype-hero svg {
-    width: 22px;
-    height: 22px;
-  }
-  .story-head .hype-hero small {
-    font-size: 12px;
-    opacity: 0.85;
   }
   .story-nav {
     margin-bottom: 12px;
@@ -5906,106 +5555,6 @@ img[data-loaded]:not(.reader-page > img) {
   }
   .site:has(.browse-page) .site-header-inner {
     grid-template-areas: 'menu brand actions';
-  }
-  /* Hype points: one slim strip. */
-  .hype-wallet {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 4px 10px;
-    padding: 10px 12px;
-    margin: 10px 0 16px;
-  }
-  .hype-wallet > svg {
-    width: 22px;
-    height: 22px;
-  }
-  .hype-wallet strong {
-    font-size: 16px;
-  }
-  .hype-wallet p {
-    margin: 0;
-    font-size: 12px;
-  }
-  .hype-points {
-    grid-column: 1 / -1;
-    margin: 4px 0 0;
-    gap: 4px;
-  }
-  .hype-points i {
-    flex: 1;
-    width: auto;
-    height: 10px;
-    border-radius: 3px;
-  }
-  .hype-chart-head {
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-}
-
-/* Hype chart on phones: score above its +1 button on the right, one compact block. */
-@media (max-width: 639px) {
-  .hype-chart {
-    gap: 8px;
-  }
-  .hype-row {
-    grid-template-columns: 20px 54px minmax(0, 1fr) auto;
-    grid-template-areas:
-      'rank cover title score'
-      'rank cover title button'
-      'details details details details';
-    column-gap: 10px;
-    padding: 10px;
-  }
-  .hype-rank {
-    grid-area: rank;
-    font-size: 16px;
-  }
-  .hype-cover {
-    grid-area: cover;
-  }
-  .hype-title {
-    grid-area: title;
-    align-self: start;
-  }
-  .hype-title a {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-    font-size: 15px;
-    line-height: 1.25;
-  }
-  .hype-title small {
-    margin-top: 3px;
-  }
-  .hype-more {
-    margin-top: 2px;
-  }
-  .hype-score {
-    grid-area: score;
-    align-self: start;
-  }
-  .hype-score strong {
-    font-size: 18px;
-  }
-  .hype-score small {
-    margin-top: 0;
-  }
-  .hype-row > .hype-button {
-    grid-area: button;
-    align-self: end;
-    margin-top: 6px;
-    min-height: 34px;
-    gap: 4px;
-    padding: 4px 9px;
-    font-size: 13px;
-  }
-  .hype-details {
-    grid-area: details;
-  }
-  .hype-details-inner {
-    padding-top: 10px;
   }
 }
 

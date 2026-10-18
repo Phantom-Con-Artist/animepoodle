@@ -14,12 +14,11 @@ import {
   validKinds,
   validSeason,
 } from './browse';
-import { hypeApp, type HypeBindings } from './hype';
 import { readApp, setBlocklist, setPublicOrigin } from './mangadex';
-export const app = new Hono<{ Bindings: HypeBindings }>();
+export const app = new Hono();
 app.use(
   '/api/*',
-  cors({ origin: 'http://localhost:3000', allowHeaders: ['Content-Type', 'X-Hype-Voter'] }),
+  cors({ origin: 'http://localhost:3000', allowHeaders: ['Content-Type'] }),
 );
 app.use('/api/*', async (c, next) => {
   setPublicOrigin(new URL(c.req.url).origin);
@@ -30,7 +29,6 @@ app.use('/api/*', async (c, next) => {
   );
   await next();
 });
-app.route('/api/hype', hypeApp);
 app.route('/api/read', readApp);
 // `?upstream=1` also asks AniList for one tiny record and reports how it answered, so a
 // deployment can be checked from where it runs (shared Cloudflare egress, not a laptop).

@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Dela_Gothic_One, Schibsted_Grotesk } from 'next/font/google';
 import './globals.css';
-import { HypeProvider } from '@/lib/hype-state';
 import { AppProvider } from '@/lib/app-state';
 import { EngineProvider } from '@/lib/taste-engine';
 import AppShell from '@/components/AppShell';
@@ -39,11 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AppProvider>
-          <HypeProvider>
             <EngineProvider>
               <AppShell>{children}</AppShell>
             </EngineProvider>
-          </HypeProvider>
         </AppProvider>
       </body>
     </html>

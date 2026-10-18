@@ -38,7 +38,6 @@ import StoryExtras from './StoryExtras';
 import ReadPanel from './ReadPanel';
 import Comments from './Comments';
 import StatusMenu from './StatusMenu';
-import HypeButton from './HypeButton';
 import { releaseLabel } from './TitleCard';
 
 const api = process.env.NEXT_PUBLIC_API_URL || '';
@@ -288,7 +287,6 @@ function Story({ params }: { params: StoryParams }) {
                 </label>
               </div>
             </div>
-            <HypeButton item={item} hero />
           </div>
         </div>
       </section>

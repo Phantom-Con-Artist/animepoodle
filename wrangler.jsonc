@@ -2,14 +2,5 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "animepoodle",
   "pages_build_output_dir": "./apps/web/out",
-  // HYPE_DB: created with npm run hype:database; tables come from migrations/ (npm run hype:migrate).
-  "vars": { "HYPE_DAILY_VOTE_CAP": "2000" },
   "compatibility_date": "2026-10-17",
-  "d1_databases": [
-    {
-      "binding": "HYPE_DB",
-      "database_name": "animepoodle-hype",
-      "database_id": "3eadbe93-1f5a-4b08-89b6-3fdf838c4b0f",
-    },
-  ],
 }

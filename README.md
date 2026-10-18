@@ -179,9 +179,3 @@ npm run test:e2e
 ## Artwork
 
 Bundled cover images are sourced from MyAnimeList and AniList; the featured Frieren landscape is from [Alpha Coders](https://wall.alphacoders.com/big.php?i=1343996). See `ASSETS.md` for exact asset URLs. Artwork belongs to its respective creators and rights holders. The poodle illustration is a project-native SVG component.
-
-## Hype
-
-`/hype` has separate yearly charts for all five sections. Browsers share one 10-point daily allowance across those sections, resetting at midnight UTC. Cards, highlights, title pages, top lists and library lists support one-point Hype actions. The initial chart uses this year’s popular titles; real Hype points take precedence as votes arrive.
-
-Local development uses persistent SQLite automatically. Production needs D1, Turnstile and runtime secrets; voting fails closed until configured. See [Hype setup and abuse controls](docs/hype.md) before enabling public voting. `npm run test:hype` tests quotas, retries, concurrent votes and safeguards.

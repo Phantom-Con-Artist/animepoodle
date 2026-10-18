@@ -8,7 +8,6 @@ import { useApp } from '@/lib/app-state';
 import { releaseLabel } from './TitleCard';
 import CardTrailer, { useCanHoverPreview, useHoverIntent } from './CardTrailer';
 import StatusMenu from './StatusMenu';
-import HypeButton from './HypeButton';
 
 const ROTATE_MS = 9000;
 // Safety net in case a player never reports that it finished.
@@ -91,7 +90,6 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
         {/* Shown only while a trailer plays, so the title and link stay in reach. */}
         <div className="highlight-nowplaying" aria-hidden={!expanded}>
           <strong>{app.name(current)}</strong>
-          <HypeButton item={current} compact />
           <Link
             className="text-button"
             href={href}
@@ -127,7 +125,6 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
                 See details <ArrowRight size={17} />
               </Link>
               <StatusMenu item={current} />
-              <HypeButton item={current} />
             </div>
             {canHover && hasVideo && app.prefs.hoverPreviews && (
               <small className="highlight-hint">Hover the picture and the trailer starts.</small>
