@@ -192,7 +192,6 @@ function Story({ params }: { params: StoryParams }) {
     ...(profile?.characters.length ? [['cast', 'Characters & cast']] : []),
     ...(profile?.relations?.length ? [['related', watch ? 'Seasons & related' : 'Related']] : []),
     ...(mangadexOnly ? [] : [['media', 'Trailer & reviews']]),
-    ...(malId ? [['mal', 'MAL reviews']] : []),
     ['comments', 'Comments'],
   ];
 

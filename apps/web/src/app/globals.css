@@ -2,65 +2,80 @@
 @source "../**/*.{ts,tsx}";
 
 /* ─────────────────────────────────────────────────────────────
-   animepoodle — soft neo-brutalist system
-   Soft ink outlines, short offset shadows, pastel sticker colours.
+   animepoodle — manga panel brutalism
+   Soft ink outlines and short offset shadows on screentone paper. Panels are cut on the
+   diagonal, posters lean so the gutters between them run parallel, and small labels read
+   like a retro-futurist HUD.
    ───────────────────────────────────────────────────────────── */
 :root {
-  --bg: #f4f4fb;
-  --surface: #ffffff;
-  --raised: #f6f5fc;
-  --sunken: #e9e8f4;
-  --text: #1f1d33;
-  --muted: #5d5a75;
-  --line: #2a2742;
-  --shadow-color: #2a2742;
-  --ink: #1f1d33;
-  --paper: #ffffff;
-  --pink: #ff9ec7;
-  --yellow: #ffe68f;
-  --sky: #9ad8ff;
-  --mint: #95e9c6;
-  --violet: #c8b8ff;
-  --on-accent: #1f1d33;
-  --dot: rgb(42 39 66 / 0.14);
-  --scrim: rgb(31 29 51 / 0.45);
+  --bg: #f3efe6;
+  --surface: #fffdf8;
+  --raised: #f8f4ea;
+  --sunken: #e8e2d4;
+  --text: #1d1b2e;
+  --muted: #5c5870;
+  --line: #262338;
+  --shadow-color: #262338;
+  --ink: #1d1b2e;
+  --paper: #fffdf8;
+  /* Neon accents: loud on stickers, buttons and badges, never on whole surfaces. */
+  --pink: #ff4fa8;
+  --yellow: #ffe83d;
+  --sky: #1fd2ff;
+  --mint: #2ef5a0;
+  --violet: #a98bff;
+  --coral: #ff7a59;
+  --on-accent: #1d1b2e;
+  --dot: rgb(38 35 56 / 0.13);
+  --grid-line: rgb(38 35 56 / 0.045);
+  --head-shadow: var(--sky);
+  --scrim: rgb(29 27 46 / 0.45);
   --bw: 2px;
   --bw-thin: 1.5px;
   --shadow-sm: 2px 2px 0 var(--shadow-color);
   --shadow: 3px 3px 0 var(--shadow-color);
   --shadow-lg: 5px 5px 0 var(--shadow-color);
-  --r-panel: 20px;
-  --r-btn: 12px;
-  --r-chip: 999px;
+  /* Manga panels: two opposite corners cut on the diagonal, the other two square. */
+  --r-panel: 0 22px;
+  --r-btn: 0 10px;
+  --r-chip: 0 7px;
+  /* How far a poster leans: its left and right edges run parallel, so gutters do too. */
+  --cut: 12px;
+  --gutter-hatch: repeating-linear-gradient(-45deg, var(--line) 0 2px, transparent 2px 7px);
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-head: var(--font-display), var(--font-body), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-mono-face), ui-monospace, 'SFMono-Regular', monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #1b1a2c;
-    --surface: #25233b;
-    --raised: #2e2b48;
-    --sunken: #16152a;
-    --text: #f2f0ff;
-    --muted: #b9b4d6;
-    --line: #4c4673;
-    --shadow-color: #0d0c1a;
-    --dot: rgb(255 255 255 / 0.08);
+    --bg: #17182a;
+    --surface: #212238;
+    --raised: #2a2b45;
+    --sunken: #121322;
+    --text: #f4f1ff;
+    --muted: #b6b2d2;
+    --line: #575380;
+    --shadow-color: #0a0a16;
+    --dot: rgb(255 255 255 / 0.075);
+    --grid-line: rgb(143 211 244 / 0.05);
+    --head-shadow: rgb(31 210 255 / 0.45);
     --scrim: rgb(8 7 18 / 0.6);
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
-  --bg: #1b1a2c;
-  --surface: #25233b;
-  --raised: #2e2b48;
-  --sunken: #16152a;
-  --text: #f2f0ff;
-  --muted: #b9b4d6;
-  --line: #4c4673;
-  --shadow-color: #0d0c1a;
-  --dot: rgb(255 255 255 / 0.08);
+  --bg: #17182a;
+  --surface: #212238;
+  --raised: #2a2b45;
+  --sunken: #121322;
+  --text: #f4f1ff;
+  --muted: #b6b2d2;
+  --line: #575380;
+  --shadow-color: #0a0a16;
+  --dot: rgb(255 255 255 / 0.075);
+  --grid-line: rgb(143 211 244 / 0.05);
+  --head-shadow: rgb(31 210 255 / 0.45);
   --scrim: rgb(8 7 18 / 0.6);
   color-scheme: dark;
 }
@@ -5536,5 +5551,227 @@ img[data-loaded]:not(.reader-page > img) {
   }
   .library-row {
     grid-template-columns: 76px minmax(0, 1fr);
+  }
+}
+
+/* ═════════════════════════════════════════════════════════════
+   Manga panel layer
+   Everything above keeps its layout and behaviour; this layer only re-cuts the panels.
+   ═════════════════════════════════════════════════════════════ */
+
+/* Every radius becomes a straight diagonal cut, so the radius tokens above draw the
+   panel shapes. Browsers without corner-shape keep soft round corners. */
+*,
+::before,
+::after {
+  corner-shape: bevel;
+}
+/* Things that are meant to be round stay round. */
+.trailer-play,
+.engine-dot,
+.character > span,
+.rules-list li::before,
+.highlight-picker .selected small,
+.highlight-pause,
+.status-popover button[aria-checked='true'],
+.status-popover button svg:last-child:not(:first-child),
+.status-dot,
+.chart-row.podium .chart-rank,
+.switch-row input::after,
+.library-link,
+.new-dot,
+.theater-close,
+.brand-mark,
+.brand-dot,
+.avatar {
+  corner-shape: round;
+}
+
+/* Screentone paper with a faint drafting grid behind it. */
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(var(--dot) 0.9px, transparent 1.3px),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:
+    12px 12px,
+    72px 72px,
+    72px 72px;
+}
+
+/* ── Posters lean: parallel diagonal gutters between neighbours ── */
+.poster-wrap {
+  border-radius: 0 var(--cut) 0 var(--cut) / 0 100% 0 100%;
+}
+.poster-wrap .format-badge,
+.poster-wrap .rank-badge {
+  left: 9px;
+}
+.poster-wrap .poster-rating {
+  left: calc(var(--cut) + 6px);
+}
+.poster-wrap > .status-trigger,
+.poster-wrap .status-menu {
+  right: calc(var(--cut) + 4px);
+}
+
+/* ── HUD labels: small print in a mono face ── */
+.format-badge,
+.poster-rating,
+.release-badge,
+.feature-label,
+.hero-meta,
+.award-year,
+.award-score,
+.chip small,
+.section-bar small,
+.count {
+  font-family: var(--font-mono);
+  letter-spacing: 0.01em;
+}
+.format-badge,
+.release-badge,
+.feature-label,
+.award-year {
+  text-transform: uppercase;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* Card details join the HUD once cards are wide enough for the wider face. */
+@media (min-width: 640px) {
+  .card-meta,
+  .card-tags {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* ── Section gutters: a hatched strip under every heading, cut at both ends ── */
+.rail-head,
+.awards > .rail-head,
+.mood-section > .rail-head {
+  position: relative;
+  padding-bottom: 14px;
+}
+.rail-head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7px;
+  background: var(--gutter-hatch);
+  opacity: 0.35;
+  clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+}
+.rail-head h2,
+.page-head h1 {
+  text-shadow: 2px 2px 0 var(--head-shadow);
+}
+
+/* ── Hero: an asymmetric two-panel spread with a slanted gutter between ── */
+.highlight-stage {
+  border-radius: 0 34px;
+}
+.highlight-copy h1 {
+  text-wrap: balance;
+}
+@media (min-width: 1024px) {
+  .highlight-copy {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    column-gap: 64px;
+  }
+  .highlight-copy::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(32px + (100% - 64px - 64px) / 2.25);
+    width: 14px;
+    margin-left: 25px;
+    border-inline: var(--bw) solid var(--line);
+    background: var(--bg);
+    transform: skewX(-14deg);
+  }
+}
+
+/* ── Moods: uneven panels in one row ── */
+@media (min-width: 1024px) {
+  .mood-grid {
+    grid-template-columns: 1.5fr 1fr 1.25fr 0.9fr;
+  }
+  .mood-card:nth-child(even) {
+    border-radius: 22px 0;
+  }
+}
+
+/* ── Awards: the newest winner gets the big splash panel ── */
+@media (min-width: 768px) {
+  .award-list {
+    grid-template-columns: 430px;
+  }
+}
+
+/* ── Buttons press like stamped tabs ── */
+.primary-button,
+.subtle-button {
+  letter-spacing: 0.01em;
+}
+.primary-button:hover,
+.subtle-button:hover {
+  transform: translate(-1px, -1px);
+}
+
+/* ── Footer: the last gutter on the page ── */
+.site-footer {
+  position: relative;
+}
+.site-footer::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -9px;
+  height: 7px;
+  background: var(--gutter-hatch);
+  opacity: 0.35;
+}
+
+/* ── Rails turn like pages: arrows and a page counter instead of a drag bar ── */
+.rail-track {
+  scrollbar-width: none;
+}
+.rail-track::-webkit-scrollbar {
+  display: none;
+}
+.rail-page {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .rail-page {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    margin-right: 4px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+  .rail-page i {
+    font-style: normal;
+    color: var(--pink);
+  }
+}
+
+/* ── Library: the total leads as a wider panel ── */
+@media (min-width: 1024px) {
+  .library-stats {
+    grid-template-columns: 1.6fr repeat(5, minmax(0, 1fr));
   }
 }

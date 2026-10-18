@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Dela_Gothic_One, Schibsted_Grotesk } from 'next/font/google';
+import { Dela_Gothic_One, Schibsted_Grotesk, Space_Mono } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/lib/app-state';
 import { EngineProvider } from '@/lib/taste-engine';
@@ -11,6 +11,12 @@ const display = Dela_Gothic_One({
   variable: '--font-display',
 });
 const body = Schibsted_Grotesk({ subsets: ['latin'], display: 'swap', variable: '--font-body' });
+const mono = Space_Mono({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-mono-face',
+});
 export const metadata: Metadata = {
   icons: { icon: '/icon.svg' },
   title: { default: 'animepoodle', template: '%s · animepoodle' },
@@ -19,8 +25,8 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f4f4fb' },
-    { media: '(prefers-color-scheme: dark)', color: '#1b1a2c' },
+    { media: '(prefers-color-scheme: light)', color: '#f3efe6' },
+    { media: '(prefers-color-scheme: dark)', color: '#17182a' },
   ],
 };
 // Applies the saved theme before first paint so there is no light/dark flash.
@@ -31,7 +37,11 @@ const themeScript = `try{var t=localStorage.getItem('animepoodle-theme');if(t===
 const imageScript = `(function(){var m=function(i){i.dataset.loaded=''};document.addEventListener('load',function(e){if(e.target.tagName==='IMG')m(e.target)},true);document.addEventListener('error',function(e){if(e.target.tagName==='IMG')m(e.target)},true);document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('img').forEach(function(i){if(i.complete)m(i)});new MutationObserver(function(l){l.forEach(function(r){var i=r.target;if(i.tagName==='IMG'&&!i.complete)delete i.dataset.loaded})}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['src']})})})()`;
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${display.variable} ${body.variable} ${mono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: imageScript }} />
