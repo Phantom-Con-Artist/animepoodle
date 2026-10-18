@@ -1,4 +1,4 @@
-// When the deployed Function answers 502/503/429 (AniList or Jikan blocking or rate-limiting this server), run the very
+// When the deployed Function answers 502/503/429 (AniList blocking or rate-limiting this server), run the very
 // same Hono app in this browser so AniList sees the visitor's own address instead.
 // MangaDex reading stays server-side: MangaDex has no CORS.
 const SERVER_ONLY = /^\/api\/(read|image|health)/;

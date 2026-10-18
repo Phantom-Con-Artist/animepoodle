@@ -9,18 +9,14 @@ import {
   Award,
   CalendarClock,
   ExternalLink,
-  MessagesSquare,
   Star,
-  ThumbsUp,
   Tv,
 } from 'lucide-react';
 import {
   isWatchFormat,
   kindLabel,
   mergeTitleMetadata,
-  withEnglishTitle,
   seasonLabel,
-  type CommunityResponse,
   type MediaDetails,
   type Title,
 } from '@animepoodle/shared';
@@ -42,10 +38,6 @@ import { releaseLabel } from './TitleCard';
 
 const api = process.env.NEXT_PUBLIC_API_URL || '';
 const compact = (n: number) => new Intl.NumberFormat('en', { notation: 'compact' }).format(n);
-const day = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
-    : '';
 function countdown(airingAt: number) {
   const s = airingAt - Date.now() / 1000;
   if (s <= 0) return 'soon';
@@ -80,7 +72,6 @@ function Story({ params }: { params: StoryParams }) {
   // Series only MangaDex lists load from MangaDex; AniList-only sections stay hidden.
   const mangadexOnly = !mediaId && !!params.mangadexId;
   const [stashed, setStashed] = useState<Title | null>(null);
-  const [reviewPage, setReviewPage] = useState(1);
   const [failedBanner, setFailedBanner] = useState<string | null>(null);
   useEffect(() => setStashed(readStash(params)), [params]);
 
@@ -97,24 +88,7 @@ function Story({ params }: { params: StoryParams }) {
     return fresh || stashed;
   }, [details.data, stashed]);
   const malId = details.data?.malId || loaded?.malId || params.malId;
-  const community = useSWR<CommunityResponse, Error>(
-    malId ? `${api}/api/community?format=${params.format}&malId=${malId}&page=${reviewPage}` : null,
-    async (url: string) => {
-      const data = await getJson<CommunityResponse>(
-        url,
-        'MyAnimeList reviews are unavailable right now.',
-      );
-      if (!Array.isArray(data.reviews) || !Array.isArray(data.topics))
-        throw new Error('MyAnimeList returned an unreadable response.');
-      return data;
-    },
-    { revalidateOnFocus: false, keepPreviousData: true, dedupingInterval: 600000 },
-  );
-  // MyAnimeList's official English title replaces a name guessed from AniList's synonyms.
-  const item = useMemo(
-    () => loaded && withEnglishTitle(loaded, community.data?.englishTitle, 'MyAnimeList'),
-    [loaded, community.data?.englishTitle],
-  );
+  const item = loaded;
   useEffect(() => {
     if (item) document.title = `${app.name(item)} · animepoodle`;
   }, [item, app]);
@@ -200,7 +174,6 @@ function Story({ params }: { params: StoryParams }) {
     ...(profile?.favourites
       ? [['Favourited by', compact(profile.favourites)] as [string, string]]
       : []),
-    ...(community.data?.rank ? [['MAL rank', `#${community.data.rank}`] as [string, string]] : []),
   ];
   const novel = item.mediaFormat === 'NOVEL';
   // The same story in another medium: anime ↔ manga, manhwa, manhua and light novels.
@@ -322,12 +295,6 @@ function Story({ params }: { params: StoryParams }) {
                   {para}
                 </p>
               ))}
-            {community.data?.background && (
-              <>
-                <h3 className="story-subhead">Background</h3>
-                <p className="synopsis">{community.data.background}</p>
-              </>
-            )}
             {item.tags && item.tags.length > 0 && (
               <>
                 <h3 className="story-subhead">Themes</h3>
@@ -538,127 +505,6 @@ function Story({ params }: { params: StoryParams }) {
             </section>
           )}
 
-          {malId && (
-            <section id="mal" className="story-panel">
-              <div className="extras-heading">
-                <h2>MyAnimeList reviews</h2>
-                {community.data && (
-                  <a
-                    href={`${community.data.malUrl}/reviews`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    All reviews on MAL <ArrowUpRight size={13} />
-                  </a>
-                )}
-              </div>
-              {community.error && !community.data ? (
-                <div className="extras-error" role="status">
-                  <p>{community.error.message}</p>
-                  <button className="text-button" onClick={() => void community.mutate()}>
-                    Try again
-                  </button>
-                </div>
-              ) : !community.data ? (
-                <p className="extras-loading" role="status">
-                  Loading reviews from MyAnimeList…
-                </p>
-              ) : (
-                <>
-                  {community.data.notice && (
-                    <p className="review-notice">{community.data.notice}</p>
-                  )}
-                  {community.data.reviews.length ? (
-                    <div className="mal-reviews" aria-busy={community.isValidating}>
-                      {community.data.reviews.map((r) => (
-                        <article key={r.id} className="mal-review">
-                          <header>
-                            {r.avatar ? (
-                              <img src={r.avatar} alt="" loading="lazy" />
-                            ) : (
-                              <span className="avatar">{r.author[0]}</span>
-                            )}
-                            <div>
-                              <strong>{r.author}</strong>
-                              <small>{day(r.date)}</small>
-                            </div>
-                            {r.score !== null && (
-                              <span className="review-score">
-                                {r.score}
-                                <small>/10</small>
-                              </span>
-                            )}
-                          </header>
-                          {r.verdict && <span className="verdict">{r.verdict}</span>}
-                          {r.spoiler ? (
-                            <details>
-                              <summary>Contains spoilers. Show review</summary>
-                              <p>{r.excerpt}</p>
-                            </details>
-                          ) : (
-                            <p>{r.excerpt}</p>
-                          )}
-                          <footer className="review-footer">
-                            <span>
-                              <ThumbsUp size={12} /> {r.reactions} reactions
-                            </span>
-                            <a href={r.url} target="_blank" rel="noopener noreferrer">
-                              Read the full review <ArrowUpRight size={12} />
-                            </a>
-                          </footer>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="extras-empty">
-                      No MyAnimeList reviews yet. Maybe you’ll write the first one?
-                    </p>
-                  )}
-                  {(community.data.hasNextPage || reviewPage > 1) && (
-                    <div className="review-pagination">
-                      <button
-                        className="text-button"
-                        disabled={reviewPage <= 1 || community.isValidating}
-                        onClick={() => setReviewPage((p) => p - 1)}
-                      >
-                        Previous
-                      </button>
-                      <span aria-live="polite">Page {reviewPage}</span>
-                      <button
-                        className="text-button"
-                        disabled={!community.data.hasNextPage || community.isValidating}
-                        onClick={() => setReviewPage((p) => p + 1)}
-                      >
-                        More MAL reviews
-                      </button>
-                    </div>
-                  )}
-                  {community.data.topics.length > 0 && (
-                    <>
-                      <h3 className="story-subhead">Forum threads</h3>
-                      <ul className="topic-list">
-                        {community.data.topics.map((t) => (
-                          <li key={t.id}>
-                            <a href={t.url} target="_blank" rel="noopener noreferrer">
-                              <strong>{t.title}</strong>
-                              <small>
-                                Started by {t.author}
-                                {t.date ? `, ${day(t.date)}` : ''}
-                              </small>
-                            </a>
-                            <span className="topic-count">
-                              <MessagesSquare size={13} /> {t.comments}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </>
-              )}
-            </section>
-          )}
-
           <section id="comments" className="story-panel">
             <Comments
               term={
@@ -692,10 +538,7 @@ function Story({ params }: { params: StoryParams }) {
               )}
               {malId && (
                 <a
-                  href={
-                    community.data?.malUrl ||
-                    `https://myanimelist.net/${watch ? 'anime' : 'manga'}/${malId}`
-                  }
+                  href={`https://myanimelist.net/${watch ? 'anime' : 'manga'}/${malId}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

@@ -1,8 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ArrowUpRight, ImageIcon, Music2, Play, Square, Video } from 'lucide-react';
+import { ArrowUpRight, ImageIcon, Music2, Play, Square } from 'lucide-react';
 import { mediaIdentity, type Title, type MediaExtras, type ThemeSong } from '@animepoodle/shared';
-import { trailerPlayerUrl } from '@/lib/trailers';
 export default function SupplementalMedia({
   item,
   bannerImage,
@@ -15,9 +14,11 @@ export default function SupplementalMedia({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
-  const [playback, setPlayback] = useState<
-    { kind: 'theme'; id: string; mode: 'audio' | 'video' } | { kind: 'clip'; index: number } | null
-  >(null);
+  const [playback, setPlayback] = useState<{
+    kind: 'theme';
+    id: string;
+    mode: 'audio' | 'video';
+  } | null>(null);
   const [mediaError, setMediaError] = useState('');
   const { anilistId, malId } = mediaIdentity(item);
   useEffect(() => {
@@ -49,7 +50,6 @@ export default function SupplementalMedia({
   }, [requested, anilistId, malId, item.format, retry]);
   const theme =
     playback?.kind === 'theme' ? data?.themes.find((t) => t.id === playback.id) : undefined;
-  const clip = playback?.kind === 'clip' ? data?.videos[playback.index] : undefined;
   const artwork = [
     ...(bannerImage
       ? [
@@ -79,17 +79,17 @@ export default function SupplementalMedia({
         <div className="media-discovery-prompt">
           <div>
             <strong>Openings, endings and artwork</strong>
-            <p>Load theme songs, music videos and extra artwork for this title.</p>
+            <p>Load theme songs and extra artwork for this title.</p>
           </div>
           <button className="primary-button" onClick={() => setRequested(true)}>
-            Find songs, videos & artwork <ArrowUpRight size={14} />
+            Find songs & artwork <ArrowUpRight size={14} />
           </button>
         </div>
       ) : (
         <>
           {loading && (
             <p className="extras-loading" role="status">
-              Loading songs, videos and artwork…
+              Loading songs and artwork…
             </p>
           )}
           {error && (
@@ -219,58 +219,6 @@ export default function SupplementalMedia({
                 <p className="status-message" role="status">
                   {mediaError}
                 </p>
-              )}
-              <div className="extras-heading media-subheading">
-                <h3>
-                  <Video size={17} />
-                  Promos & music videos
-                </h3>
-                <span>via Jikan / MyAnimeList</span>
-              </div>
-              {data.videos.length ? (
-                <div className="bonus-video-grid">
-                  {data.videos.map((video, index) => (
-                    <article className="bonus-video" key={video.trailer.url}>
-                      {playback?.kind === 'clip' && playback.index === index ? (
-                        <iframe
-                          src={trailerPlayerUrl(video.trailer)}
-                          title={video.title}
-                          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                          allowFullScreen
-                          referrerPolicy="strict-origin-when-cross-origin"
-                        />
-                      ) : (
-                        <button
-                          className="bonus-video-preview"
-                          onClick={() => {
-                            setPlayback({ kind: 'clip', index });
-                            setMediaError('');
-                          }}
-                          aria-label={`Play ${video.title}`}
-                        >
-                          {video.trailer.thumbnail && (
-                            <img src={video.trailer.thumbnail} alt="" loading="lazy" />
-                          )}
-                          <span>
-                            <Play size={22} fill="currentColor" />
-                          </span>
-                        </button>
-                      )}
-                      <strong>{video.title}</strong>
-                      <a href={video.trailer.url} target="_blank" rel="noopener noreferrer">
-                        Open on YouTube <ArrowUpRight size={12} />
-                      </a>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="extras-empty">No extra videos have been added for this title yet.</p>
-              )}
-              {clip && (
-                <button className="text-button" onClick={() => setPlayback(null)}>
-                  <Square size={12} />
-                  Stop extra video
-                </button>
               )}
             </>
           )}

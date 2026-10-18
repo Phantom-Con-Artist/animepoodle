@@ -13,7 +13,7 @@ export interface Title {
   id: number;
   anilistId?: number;
   malId?: number;
-  source?: 'AniList' | 'Jikan' | 'MangaDex';
+  source?: 'AniList' | 'MangaDex';
   /** MangaDex manga ID, for series read here (and those only MangaDex lists). */
   mangadexId?: string;
   bannerImage?: string | null;
@@ -33,7 +33,7 @@ export interface Title {
     romaji: string | null;
     native: string | null;
     /** Set when AniList had no English title and one was taken from elsewhere. */
-    englishFrom?: 'synonym' | 'MyAnimeList' | 'MangaDex';
+    englishFrom?: 'synonym' | 'MangaDex';
   };
   format: Format;
   year: number;
@@ -178,54 +178,16 @@ export interface MediaProfile {
   characters: MediaCharacter[];
   recommendations: Title[];
 }
-export interface CommunityReview {
-  id: number;
-  author: string;
-  avatar: string | null;
-  score: number | null;
-  date: string | null;
-  verdict: string | null;
-  excerpt: string;
-  spoiler: boolean;
-  reactions: number;
-  url: string;
-}
-export interface ForumTopic {
-  id: number;
-  title: string;
-  author: string;
-  comments: number;
-  date: string | null;
-  url: string;
-}
-export interface CommunityResponse {
-  malUrl: string;
-  /** MyAnimeList's official English title, when it has one. */
-  englishTitle?: string | null;
-  background: string | null;
-  members: number | null;
-  rank: number | null;
-  reviews: CommunityReview[];
-  hasNextPage: boolean;
-  topics: ForumTopic[];
-  notice?: string;
-}
-
 export interface MediaLink {
   label: string;
   url: string;
-  source: 'AniList' | 'Jikan';
+  source: 'AniList';
 }
 export interface Artwork {
   url: string;
   thumbnail: string;
   label: string;
-  source: 'AniList' | 'Jikan' | 'AnimeThemes';
-}
-export interface MediaVideo {
-  title: string;
-  trailer: Trailer;
-  source: 'AniList' | 'Jikan';
+  source: 'AniList' | 'AnimeThemes';
 }
 export interface ThemeSong {
   id: string;
@@ -235,15 +197,14 @@ export interface ThemeSong {
   videoUrl: string | null;
   audioUrl: string | null;
   episodes: string | null;
-  source: 'AnimeThemes' | 'Jikan';
+  source: 'AnimeThemes';
   url: string;
 }
 export interface MediaExtras {
   themes: ThemeSong[];
-  videos: MediaVideo[];
   artwork: Artwork[];
   sources: {
-    name: 'AnimeThemes' | 'Jikan';
+    name: 'AnimeThemes';
     status: 'ok' | 'partial' | 'unavailable' | 'not-applicable';
     message?: string;
   }[];
@@ -393,13 +354,13 @@ export function displayTitle(item: Title, language: TitleLanguage = 'english') {
 export * from './reading';
 
 /**
- * Fill in an English title found after the catalog loaded (MyAnimeList, MangaDex). AniList's
+ * Fill in an English title found after the catalog loaded (MangaDex). AniList's
  * own English title always wins; a synonym guess gives way to an official source.
  */
 export function withEnglishTitle(
   item: Title,
   english: string | null | undefined,
-  from: 'MyAnimeList' | 'MangaDex',
+  from: 'MangaDex',
 ): Title {
   const name = english?.trim();
   const t = item.titles;

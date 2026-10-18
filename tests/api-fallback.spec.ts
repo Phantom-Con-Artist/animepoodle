@@ -58,22 +58,9 @@ test('a blocked server falls back to the visitor’s browser', async ({ page }) 
     });
   });
   await page.goto('/browse');
-  await expect(page.getByText('Fallback show 1', { exact: true })).toBeVisible({ timeout: 20000 });
+  await expect(page.locator('.card-title', { hasText: 'Fallback show 1' })).toBeVisible({
+    timeout: 20000,
+  });
   expect(blocked).toBeGreaterThan(0);
   expect(fromBrowser).toBeGreaterThan(0);
-});
-
-test('Hype is never retried in the browser', async ({ page }) => {
-  let fromBrowser = 0;
-  await page.route(/graphql\.anilist\.co/, (route) => {
-    fromBrowser++;
-    return route.abort();
-  });
-  await page.route('**/api/hype*', (route) =>
-    route.fulfill({ status: 502, json: { error: 'down' } }),
-  );
-  await page.goto('/rules');
-  const status = await page.evaluate(async () => (await fetch('/api/hype?format=Anime')).status);
-  expect(status).toBe(502);
-  expect(fromBrowser).toBe(0);
 });

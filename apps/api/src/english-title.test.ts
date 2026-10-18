@@ -122,14 +122,14 @@ test('guessed names are marked, and official sources replace only guesses', () =
   const guessed = normalizeMedia(media);
   assert.equal(guessed.title, 'The Dungeon Painter');
   assert.equal(guessed.titles?.englishFrom, 'synonym');
-  const official = withEnglishTitle(guessed, 'The Painter of the Dungeon', 'MyAnimeList');
+  const official = withEnglishTitle(guessed, 'The Painter of the Dungeon', 'MangaDex');
   assert.equal(official.title, 'The Painter of the Dungeon');
-  assert.equal(official.titles?.englishFrom, 'MyAnimeList');
+  assert.equal(official.titles?.englishFrom, 'MangaDex');
   assert.equal(withEnglishTitle(official, 'Something Else', 'MangaDex'), official);
   const real = normalizeMedia({
     ...media,
     title: { ...media.title, english: 'Real Title' },
   } as AniMedia);
   assert.equal(real.titles?.englishFrom, undefined);
-  assert.equal(withEnglishTitle(real, 'Other', 'MyAnimeList'), real);
+  assert.equal(withEnglishTitle(real, 'Other', 'MangaDex'), real);
 });

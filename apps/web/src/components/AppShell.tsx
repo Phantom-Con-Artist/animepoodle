@@ -289,8 +289,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <p className="footer-credit">
-          Data from AniList, MyAnimeList (via Jikan), AnimeThemes and MangaDex. Chapters are
-          credited to the groups who shared them. No ads, ever.
+          Data from AniList, AnimeThemes and MangaDex. Chapters are credited to the groups who
+          shared them. No ads, ever.
         </p>
       </footer>
 

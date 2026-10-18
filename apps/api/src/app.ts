@@ -3,7 +3,6 @@ import { cors } from 'hono/cors';
 import { formats, releaseStatuses, type Format } from '@animepoodle/shared';
 import { getMediaDetails, CatalogError } from './anilist';
 import { searchCatalog, getSupplementalMedia, discoverCatalog } from './catalog-service';
-import { getJikanCommunity } from './jikan';
 import {
   browseAniList,
   browseSorts,
@@ -16,10 +15,7 @@ import {
 } from './browse';
 import { readApp, setBlocklist, setPublicOrigin } from './mangadex';
 export const app = new Hono();
-app.use(
-  '/api/*',
-  cors({ origin: 'http://localhost:3000', allowHeaders: ['Content-Type'] }),
-);
+app.use('/api/*', cors({ origin: 'http://localhost:3000', allowHeaders: ['Content-Type'] }));
 app.use('/api/*', async (c, next) => {
   setPublicOrigin(new URL(c.req.url).origin);
   const env = c.env as Record<string, string | undefined> | undefined;
@@ -96,7 +92,7 @@ app.get('/api/search', async (c) => {
   if (!formats.includes(format as (typeof formats)[number]))
     return c.json({ error: 'Unknown format.' }, 400);
   try {
-    return c.json(await searchCatalog(q, format, c.req.query('broaden') === '1', status));
+    return c.json(await searchCatalog(q, format, status));
   } catch (error) {
     if (error instanceof CatalogError) {
       if (error.status === 429) c.header('Retry-After', String(error.retryAfter));
@@ -151,31 +147,6 @@ app.get('/api/extras', async (c) => {
       format,
     ),
   );
-});
-app.get('/api/community', async (c) => {
-  const format = c.req.query('format');
-  if (!format || format === 'All' || !formats.includes(format as (typeof formats)[number]))
-    return c.json({ error: 'Choose a story format.' }, 400);
-  const rawMal = c.req.query('malId') || '';
-  const rawPage = c.req.query('page') || '1';
-  if (!/^[1-9]\d{0,9}$/.test(rawMal) || Number(rawMal) > 2147483647)
-    return c.json({ error: 'Provide a valid MyAnimeList ID.' }, 400);
-  if (!/^[1-9]\d{0,2}$/.test(rawPage)) return c.json({ error: 'Invalid review page.' }, 400);
-  try {
-    return c.json(
-      await getJikanCommunity(
-        Number(rawMal),
-        ['Anime', 'Donghua'].includes(format),
-        Number(rawPage),
-      ),
-    );
-  } catch (error) {
-    if (error instanceof CatalogError) {
-      if (error.status === 429) c.header('Retry-After', String(error.retryAfter));
-      return c.json({ error: error.message }, error.status);
-    }
-    return c.json({ error: 'MyAnimeList community data is unavailable right now.' }, 503);
-  }
 });
 function fail(c: Context, error: unknown, fallback: string) {
   if (error instanceof CatalogError) {

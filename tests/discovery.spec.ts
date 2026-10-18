@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import type { Title } from '../packages/shared/src/index';
 import { catalog } from './fixtures/catalog';
 
-// Every API is mocked so the suite is deterministic and never touches AniList or Jikan.
+// Every API is mocked so the suite is deterministic and never touches AniList.
 const trailer = (id: string) => ({
   site: 'youtube',
   url: `https://www.youtube.com/watch?v=${id}`,
@@ -19,15 +19,6 @@ const items: Title[] = catalog.map((item, i) => ({
   trailer: i === 0 ? (trailer('abc123') as Title['trailer']) : null,
 }));
 const inSection = (format: string | null) => items.filter((t) => t.format === format);
-const emptyCommunity = {
-  malUrl: 'https://myanimelist.net/anime/52991',
-  background: null,
-  members: null,
-  rank: null,
-  reviews: [],
-  hasNextPage: false,
-  topics: [],
-};
 const details = (overrides: Record<string, unknown> = {}) => ({
   anilistId: 154587,
   malId: 52991,
@@ -136,7 +127,6 @@ test.beforeEach(async ({ page }) => {
       },
     });
   });
-  await page.route('**/api/community?*', (route) => route.fulfill({ json: emptyCommunity }));
   await page.route('**/api/media/*', (route) => route.fulfill({ json: details() }));
   await page.route('**/api/studio/*', (route) =>
     route.fulfill({
@@ -300,31 +290,6 @@ test('browse filters by type and year through the URL and loads more pages', asy
   await expect(page).toHaveURL(/year=2024/);
   expect(requests.some((u) => u.includes('kind=MOVIE') && u.includes('year=2024'))).toBe(true);
   expect(await noOverflow(page)).toBe(true);
-});
-
-test('header search goes to browse and can broaden to Jikan', async ({ page }) => {
-  await page.route('**/api/search?*', (route) => {
-    const broad = new URL(route.request().url()).searchParams.get('broaden') === '1';
-    const base = { ...items[0], id: 991002, title: 'Primary story' };
-    return route.fulfill({
-      json: {
-        items: broad
-          ? [base, { ...base, id: 991003, title: 'Secondary story', source: 'Jikan' }]
-          : [base],
-        source: broad ? 'AniList + Jikan' : 'AniList',
-      },
-    });
-  });
-  await page.goto('/');
-  await page.getByRole('textbox', { name: 'Search stories' }).fill('story');
-  await page.getByRole('textbox', { name: 'Search stories' }).press('Enter');
-  await expect(page).toHaveURL(/\/browse\?q=story/);
-  await expect(page.locator('.title-grid .card-title')).toHaveText(['Primary story']);
-  await page.getByRole('button', { name: 'Broaden with Jikan' }).click();
-  await expect(page.locator('.title-grid .card-title')).toHaveText([
-    'Primary story',
-    'Secondary story',
-  ]);
 });
 
 test('top rated is a numbered chart sorted by score', async ({ page }) => {
@@ -652,19 +617,15 @@ test('soundtrack extras load on demand and play on click', async ({ page }) => {
             url: 'https://animethemes.moe/anime/test',
           },
         ],
-        videos: [],
         artwork: [
           {
             url: '/images/frieren.jpg',
             thumbnail: '/images/frieren.jpg',
             label: 'Cover artwork',
-            source: 'Jikan',
+            source: 'AnimeThemes',
           },
         ],
-        sources: [
-          { name: 'AnimeThemes', status: 'ok' },
-          { name: 'Jikan', status: 'ok' },
-        ],
+        sources: [{ name: 'AnimeThemes', status: 'ok' }],
       },
     });
   });
@@ -672,7 +633,7 @@ test('soundtrack extras load on demand and play on click', async ({ page }) => {
   await page.goto('/story?format=Anime&anilist=154587&mal=52991');
   await expect(page.getByRole('heading', { name: 'Soundtrack & extras' })).toBeVisible();
   expect(extras).toBe(0);
-  await page.getByRole('button', { name: 'Find songs, videos & artwork' }).click();
+  await page.getByRole('button', { name: 'Find songs & artwork' }).click();
   await expect(page.getByText('Opening Song', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Listen to Opening Song' }).click();
   await expect(page.locator('audio')).toHaveAttribute('src', 'https://a.animethemes.moe/test.ogg');

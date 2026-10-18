@@ -20,7 +20,7 @@ const site = [
   },
   {
     title: 'Where the information comes from',
-    body: 'Titles, synopses, scores, characters, trailers and AniList reviews come from AniList; series AniList doesn’t list, and chapters, come from MangaDex. MyAnimeList reviews, forum threads and extra artwork come from MyAnimeList through Jikan. Opening and ending songs come from AnimeThemes. Reviews and threads belong to the people who wrote them. We show short excerpts and link to the full text.',
+    body: 'Titles, synopses, scores, characters, trailers and AniList reviews come from AniList; series AniList doesn’t list, and chapters, come from MangaDex. Opening and ending songs come from AnimeThemes. Reviews and threads belong to the people who wrote them. We show short excerpts and link to the full text.',
   },
   {
     title: 'Your data stays in your browser',

@@ -1006,63 +1006,6 @@ select option {
   border-radius: 8px;
   background: var(--ink);
 }
-.bonus-video-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-}
-.bonus-video {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  min-width: 0;
-}
-.bonus-video iframe,
-.bonus-video-preview {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--ink);
-  border: var(--bw-thin) solid var(--line);
-  border-radius: 10px;
-  box-shadow: var(--shadow-sm);
-}
-.bonus-video-preview img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.bonus-video-preview span {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  display: grid;
-  place-items: center;
-  width: 50px;
-  height: 50px;
-  background: var(--pink);
-  color: var(--ink);
-  border: var(--bw-thin) solid var(--ink);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-.bonus-video strong {
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.bonus-video a {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: underline;
-}
 .artwork-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -1419,60 +1362,6 @@ input[type='range']::-moz-range-thumb {
   color: var(--muted);
   font-size: 12px;
 }
-.mal-reviews {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
-  align-items: start;
-  gap: 14px;
-}
-.mal-reviews[aria-busy='true'] {
-  opacity: 0.6;
-}
-.mal-review {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  background: var(--raised);
-  border: var(--bw-thin) solid var(--line);
-  border-radius: var(--r-btn);
-}
-.mal-review header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.mal-review header img,
-.mal-review header .avatar {
-  width: 38px;
-  height: 38px;
-  object-fit: cover;
-  border: var(--bw-thin) solid var(--line);
-  border-radius: 50%;
-}
-.mal-review header div {
-  flex: 1;
-  min-width: 0;
-}
-.mal-review header strong {
-  display: block;
-  font-size: 14px;
-}
-.mal-review header small {
-  color: var(--muted);
-  font-size: 12px;
-}
-.mal-review > p,
-.mal-review details p {
-  font-size: 14px;
-  line-height: 1.6;
-  max-width: 72ch;
-}
-.mal-review summary {
-  cursor: pointer;
-  font-weight: 800;
-  font-size: 14px;
-}
 .verdict {
   align-self: flex-start;
   padding: 1px 9px;
@@ -1481,45 +1370,6 @@ input[type='range']::-moz-range-thumb {
   border: var(--bw-thin) solid var(--line);
   border-radius: var(--r-chip);
   font-size: 12px;
-  font-weight: 800;
-}
-.topic-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.topic-list li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: var(--raised);
-  border: var(--bw-thin) solid var(--line);
-  border-radius: var(--r-btn);
-}
-.topic-list a {
-  flex: 1;
-  min-width: 0;
-}
-.topic-list a:hover strong {
-  text-decoration: underline;
-}
-.topic-list strong {
-  display: block;
-  font-size: 14px;
-}
-.topic-list small {
-  color: var(--muted);
-  font-size: 12px;
-}
-.topic-count {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
   font-weight: 800;
 }
 .facts-panel dl {
@@ -3059,36 +2909,6 @@ kbd {
   display: flex;
   justify-content: center;
   margin-top: 28px;
-}
-.live-search-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-  padding: 10px 12px;
-  margin-bottom: 16px;
-  background: var(--raised);
-  border: var(--bw-thin) solid var(--line);
-  border-radius: var(--r-btn);
-  font-weight: 700;
-  font-size: 14px;
-}
-.live-search-bar > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-right: auto;
-}
-.live-search-bar button {
-  min-height: 36px;
-  padding: 0 13px;
-  background: var(--sky);
-  color: var(--on-accent);
-  border: var(--bw-thin) solid var(--line);
-  border-radius: var(--r-btn);
-  font-weight: 800;
-  font-size: 13px;
-  box-shadow: var(--shadow-sm);
 }
 .empty-state {
   display: flex;

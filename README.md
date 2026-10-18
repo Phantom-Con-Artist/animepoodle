@@ -1,6 +1,6 @@
 # animepoodle 🐩
 
-A place to discover and track anime, Chinese anime (donghua), manga, manhwa and manhua. Soft neo-brutalist design with light and dark themes, live AniList data, AnimeThemes music, Jikan extras, a private local library, and recommendations computed in the browser. Built with **Next.js + React + Tailwind CSS**, **Hono**, and **Rust → WebAssembly**. No Vite. Deploys to **Cloudflare Pages (`pages.dev`)** without managing a server.
+A place to discover and track anime, Chinese anime (donghua), manga, manhwa and manhua. Soft neo-brutalist design with light and dark themes, live AniList data, AnimeThemes music, a private local library, and recommendations computed in the browser. Built with **Next.js + React + Tailwind CSS**, **Hono**, and **Rust → WebAssembly**. No Vite. Deploys to **Cloudflare Pages (`pages.dev`)** without managing a server.
 
 ## Run locally
 
@@ -72,7 +72,7 @@ The first deployment may prompt you to create a Pages project named `animepoodle
 
 - **Home**: Top highlights that rotate every 9 seconds. Hovering one expands the picture into a landscape player and plays its trailer once, then the next highlight takes over. Rows below: Continue watching, This week, Fresh this month, Best of the year, This season, Anime of the Year winners, Coming soon, your list and your matches.
 - **Separate sections** for Anime, Chinese anime, Manga, Manhwa and Manhua. Recommendations, moods and Surprise me never mix them.
-- **Browse**: every AniList title, filtered by type (TV series, Movie, OVA, Special, Short, Web series; Series, One-shot, Novel for comics), year, season, genre and status. Filters live in the URL, so views can be shared. Search is forgiving: besides titles it understands studios (“mappa”, even “kyoto animaton”), genres and tags (“isekai romcom”, “shonen sports”, “psycho thriller”), with small typos and common shorthand. What it read into the query is shown above the results. Search falls back to and can broaden with Jikan.
+- **Browse**: every AniList title, filtered by type (TV series, Movie, OVA, Special, Short, Web series; Series, One-shot, Novel for comics), year, season, genre and status. Filters live in the URL, so views can be shared. Search is forgiving: besides titles it understands studios (“mappa”, even “kyoto animaton”), genres and tags (“isekai romcom”, “shonen sports”, “psycho thriller”), with small typos and common shorthand. What it read into the query is shown above the results.
 - **Top rated**: a ranked chart by AniList score, ignoring titles with too few votes; filter by year, genre and type.
 - **Seasonal**: any anime season, grouped by type.
 - **My library**: Watching / Reading, Next on my list, Watched / Read, On hold and Dropped, across every section, with counts, grid or list view, and sorting. Older bookmarks migrate to "Next on my list".
@@ -97,7 +97,6 @@ apps/api/src/
   anilist.ts              Primary GraphQL metadata, trailers, reviews, banners
   catalog-service.ts      AniList-first search, source merging, supplemental orchestration
   animethemes.ts          OP/ED songs, artists, audio, videos, and cover artwork
-  jikan.ts                Secondary search, promo/music videos, pictures, theme names
   provider-client.ts      Bounded caches, coalescing, pacing, rate-limit cooldowns
   index.ts                Local-only Node development adapter
 functions/api/[[route]].ts Cloudflare Pages adapter for the same Hono app
@@ -128,30 +127,28 @@ OAuth credentials are needed only for a future sign-in/account-sync feature. Sto
 
 ## Providers and media
 
-All three integrations use public read-only endpoints; no API keys or client secrets are required.
+The integrations use public read-only endpoints; no API keys or client secrets are required.
 
 | Provider            | Role                                                                                              | Warm-instance cache                              |
 | ------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | AniList             | Primary catalog, country/type classification, reviews, trailer, banner and YouTube external links | Search/discovery: 60 seconds; details: 5 minutes |
 | AnimeThemes         | OP/ED songs and artists, WebM video, audio streams, cover art                                     | 1 hour                                           |
-| Jikan / MyAnimeList | Search expansion/fallback, promos, music videos, artwork, fallback theme names                    | 15 minutes                                       |
 
 `GET /api/discover?format=Anime&status=RELEASING&sort=TRENDING_DESC` retrieves current discovery results. Status values are `ALL`, `RELEASING`, `FINISHED`, `NOT_YET_RELEASED`, `HIATUS`, and `CANCELLED`; sorting also accepts `POPULARITY_DESC`, `SCORE_DESC`, and `START_DATE_DESC`. Upstream availability determines freshness; timestamps show when data was fetched.
 
-`GET /api/search?q=...&format=Anime&status=ALL` always tries AniList first. Add `broaden=1` to append distinct Jikan matches. Deduplication uses the MAL media ID and media category so anime and manga remain distinct. No Jikan country inference is used: donghua remains on AniList, since Jikan does not provide a reliable country-of-origin filter.
+`GET /api/search?q=...&format=Anime&status=ALL` always tries AniList first.
 
 `GET /api/media/:id?format=Anime&page=1` returns primary details, including canonical `anilistId`, `malId`, `bannerImage`, and `youtubeLinks`. YouTube links come from AniList trailer metadata or enabled `externalLinks`; no YouTube API key or fabricated search links are used.
 
-`GET /api/extras?anilistId=154587&malId=52991&format=Anime` independently gathers AnimeThemes and Jikan media. Either provider may fail without failing the whole response. Open **Soundtrack & extras → Find songs, videos & artwork** to load it. AnimeThemes uses an exact AniList/MAL resource mapping rather than a fuzzy title lookup. Flagged spoiler/NSFW theme versions are excluded. Jikan theme strings are used as a metadata-only fallback if no playable AnimeThemes entries exist.
+`GET /api/extras?anilistId=154587&malId=52991&format=Anime` gathers AnimeThemes songs and artwork. Open **Soundtrack & extras → Find songs & artwork** to load it. AnimeThemes uses an exact AniList/MAL resource mapping rather than a fuzzy title lookup. Flagged spoiler/NSFW theme versions are excluded.
 
-The clients use timeouts, bounded caches, concurrent-request coalescing, and `Retry-After` cooldowns. Jikan calls are serialized with at least 1.1 seconds between starts per warm instance. This respects its documented per-instance traffic budget; multiple edge instances do not share a global rate limiter or cache.
+The clients use timeouts, bounded caches, concurrent-request coalescing, and `Retry-After` cooldowns. Edge instances do not share a global rate limiter or cache.
 
 Songs and videos stream directly from their source; the Pages Function proxies metadata only. They are not copied into the repository or rehosted. Native audio/video is click-to-play with `preload="none"`. Supplemental video embeds are also click-to-play, and card trailer backgrounds retain their muted-loop behavior.
 
 The artwork gallery labels banners and covers accurately; these APIs do not promise arbitrary wallpapers or full-resolution production art. Full-size image links open the original API-supplied asset. Provider availability and browser media-format support can vary; source links remain available if playback fails.
 
 - [AnimeThemes API resources and includes](https://github.com/AnimeThemes/animethemes-api-docs/blob/main/docs/jsonapi/reference/content/anime/index.md)
-- [Jikan API and rate limits](https://docs.api.jikan.moe/)
 - [AniList media fields](https://docs.anilist.co/reference/object/media)
 
 ## Work on the Rust engine
@@ -174,7 +171,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-`npm test` includes API validation, provider normalization/cache behavior, AniList-first merging and Jikan fallback, AnimeThemes resource mapping, unsafe-link rejection, partial-provider failures, Rust unit tests, and WASM/JavaScript parity. Browser tests exercise the Pages artifact at port 4173 on desktop and mobile, including persistence, filters, errors, dialog access, actual WebAssembly loading, on-demand soundtrack media, YouTube links, artwork, and opt-in search expansion. Browser media tests use controlled responses and verify player mounting/URLs rather than asserting third-party streaming availability.
+`npm test` includes API validation, provider normalization/cache behavior, AnimeThemes resource mapping, unsafe-link rejection, partial-provider failures, Rust unit tests, and WASM/JavaScript parity. Browser tests exercise the Pages artifact at port 4173 on desktop and mobile, including persistence, filters, errors, dialog access, actual WebAssembly loading, on-demand soundtrack media, YouTube links and artwork. Browser media tests use controlled responses and verify player mounting/URLs rather than asserting third-party streaming availability.
 
 ## Artwork
 

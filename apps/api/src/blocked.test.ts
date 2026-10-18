@@ -4,7 +4,7 @@ import { app } from './app';
 
 // AniList answers 403 to Cloudflare's shared addresses. The server must say so at once (502)
 // instead of trying slower fallbacks, so the page can retry from the visitor's browser.
-test('a blocked AniList answers 502 immediately, without trying Jikan or waiting on others', async () => {
+test('a blocked AniList answers 502 immediately, without waiting on other providers', async () => {
   const original = globalThis.fetch;
   const hosts: string[] = [];
   globalThis.fetch = async (url) => {
@@ -15,7 +15,7 @@ test('a blocked AniList answers 502 immediately, without trying Jikan or waiting
         { errors: [{ message: 'You have been manually blocked.' }] },
         { status: 403 },
       );
-    // Anything else would hang like an unreachable Jikan.
+    // Anything else would hang like an unreachable provider.
     return new Promise<Response>(() => {});
   };
   try {
@@ -30,7 +30,7 @@ test('a blocked AniList answers 502 immediately, without trying Jikan or waiting
       assert.match((await res.json()).error, /blocking this server/);
       assert.ok(Date.now() - started < 2000, `${path} should not wait on other providers`);
     }
-    assert.ok(!hosts.includes('api.jikan.moe'));
+    assert.deepEqual([...new Set(hosts)], ['graphql.anilist.co']);
   } finally {
     globalThis.fetch = original;
   }

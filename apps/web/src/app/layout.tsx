@@ -38,9 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AppProvider>
-            <EngineProvider>
-              <AppShell>{children}</AppShell>
-            </EngineProvider>
+          <EngineProvider>
+            <AppShell>{children}</AppShell>
+          </EngineProvider>
         </AppProvider>
       </body>
     </html>

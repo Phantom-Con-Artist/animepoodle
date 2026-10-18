@@ -1,28 +1,18 @@
-import { type Title, type MediaExtras, type SearchMatches } from '@animepoodle/shared';
+import { type Title, type MediaExtras } from '@animepoodle/shared';
 import { searchAniListTerms, discoverAniList, CatalogError } from './anilist';
-import { searchJikan, getJikanExtras, discoverJikan } from './jikan';
 import { getAnimeThemes } from './animethemes';
 import { searchMangaDex } from './mangadex';
-export function mergeCatalog(primary: Title[], secondary: Title[]): Title[] {
-  const merged = new Map<string, Title>();
-  for (const item of [...primary, ...secondary]) {
-    const category = ['Anime', 'Donghua'].includes(item.format) ? 'anime' : 'manga';
-    const key = `${category}:${item.malId || item.id}`;
-    if (!merged.has(key)) merged.set(key, item);
-  }
-  return [...merged.values()];
-}
 const names = (t: Title) =>
   [t.title, t.original, t.titles?.english, t.titles?.romaji, t.titles?.native]
     .filter((n): n is string => !!n)
     .map((n) => n.toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''))
     .filter((n) => n.length > 2);
-export async function searchCatalog(q: string, format: string, broaden = false, status = 'ALL') {
+export async function searchCatalog(q: string, format: string, status = 'ALL') {
   // Series only MangaDex lists are searched alongside AniList and come after its results.
   const mangadex = searchMangaDex(q, format).catch(() => [] as Title[]);
   let result: Awaited<ReturnType<typeof searchAniListCatalog>>;
   try {
-    result = await searchAniListCatalog(q, format, broaden, status);
+    result = await searchAniListCatalog(q, format, status);
   } catch (error) {
     // A blocked server answers at once, so the visitor's browser can take over.
     if (error instanceof CatalogError && error.status === 502) throw error;
@@ -42,56 +32,9 @@ export async function searchCatalog(q: string, format: string, broaden = false, 
   if (!extra.length) return result;
   return { ...result, items: [...result.items, ...extra], source: `${result.source} + MangaDex` };
 }
-async function searchAniListCatalog(q: string, format: string, broaden: boolean, status: string) {
-  let primary: Title[] = [];
-  let matched: SearchMatches | undefined;
-  let primaryError: unknown;
-  try {
-    ({ items: primary, matched } = await searchAniListTerms(q, format, status));
-  } catch (error) {
-    // AniList refused this server: skip the slower fallbacks so the browser can retry.
-    if (error instanceof CatalogError && error.status === 502) throw error;
-    primaryError = error;
-  }
-  if (!broaden && !primaryError && primary.length)
-    return { items: primary, source: 'AniList', matched };
-  if (format === 'Donghua') {
-    if (primaryError) throw primaryError;
-    return {
-      items: primary,
-      source: 'AniList',
-      matched,
-      ...(broaden
-        ? {
-            notice:
-              'Donghua stays on AniList because Jikan cannot reliably filter by country of origin.',
-          }
-        : {}),
-    };
-  }
-  try {
-    const secondary = await searchJikan(q, format, status);
-    const items = mergeCatalog(primary, secondary);
-    if (primaryError && !secondary.length) throw primaryError;
-    return {
-      items,
-      source: primary.length ? (secondary.length ? 'AniList + Jikan' : 'AniList') : 'Jikan',
-      matched,
-      ...(primaryError
-        ? { notice: 'AniList is temporarily unavailable. Showing Jikan results.' }
-        : {}),
-    };
-  } catch (error) {
-    if (primaryError) throw primaryError;
-    return {
-      items: primary,
-      source: 'AniList',
-      matched,
-      ...(broaden
-        ? { notice: 'Jikan is unavailable right now. Your AniList results are still here.' }
-        : {}),
-    };
-  }
+async function searchAniListCatalog(q: string, format: string, status: string) {
+  const { items, matched } = await searchAniListTerms(q, format, status);
+  return { items, source: 'AniList', matched };
 }
 export async function getSupplementalMedia(
   anilistId: number | undefined,
@@ -99,23 +42,13 @@ export async function getSupplementalMedia(
   format: string,
 ): Promise<MediaExtras> {
   const anime = ['Anime', 'Donghua'].includes(format);
-  const [themes, jikan] = await Promise.allSettled([
+  const themes = await Promise.allSettled([
     anime ? getAnimeThemes(anilistId, malId) : Promise.resolve(null),
-    malId ? getJikanExtras(malId, anime) : Promise.resolve(null),
-  ]);
+  ]).then(([r]) => r);
   const themeData = themes.status === 'fulfilled' ? themes.value : null;
-  const jikanData = jikan.status === 'fulfilled' ? jikan.value : null;
   return {
-    themes: themeData?.themes.length ? themeData.themes : jikanData?.themes || [],
-    videos: jikanData?.videos || [],
-    artwork: Array.from(
-      new Map(
-        [...(themeData?.artwork || []), ...(jikanData?.artwork || [])].map((image) => [
-          image.url,
-          image,
-        ]),
-      ).values(),
-    ),
+    themes: themeData?.themes || [],
+    artwork: themeData?.artwork || [],
     sources: [
       {
         name: 'AnimeThemes',
@@ -124,40 +57,10 @@ export async function getSupplementalMedia(
           ? { message: 'Opening and ending media is unavailable right now.' }
           : {}),
       },
-      {
-        name: 'Jikan',
-        status: !malId
-          ? 'not-applicable'
-          : jikan.status === 'rejected'
-            ? 'unavailable'
-            : jikanData?.partial
-              ? 'partial'
-              : 'ok',
-        ...(jikan.status === 'rejected'
-          ? { message: 'Extra videos and artwork are unavailable right now.' }
-          : {}),
-      },
     ],
   };
 }
 
 export async function discoverCatalog(format: string, status: string, sort: string) {
-  try {
-    return await discoverAniList(format, status, sort);
-  } catch (error) {
-    if (format === 'Donghua' || (error instanceof CatalogError && error.status === 502))
-      throw error;
-    try {
-      const items = await discoverJikan(format, status, sort);
-      if (!items.length) throw error;
-      return {
-        items,
-        source: 'Jikan',
-        fetchedAt: new Date().toISOString(),
-        notice: 'AniList is temporarily unavailable. Showing Jikan discoveries.',
-      };
-    } catch {
-      throw error;
-    }
-  }
+  return discoverAniList(format, status, sort);
 }

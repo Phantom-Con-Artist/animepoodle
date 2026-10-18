@@ -18,11 +18,11 @@ idf(feature) = 1 + ln((candidate_count + 1) / (feature_document_count + 1))
 vector[hash(feature)] += feature_weight × idf(feature)
 ```
 
-Each vector is L2-normalized. Specific themes can distinguish two stories that share the same broad genres. Jikan titles with no AniList tags still contribute genre vectors.
+Each vector is L2-normalized. Specific themes can distinguish two stories that share the same broad genres.
 
 ## Live metadata updates
 
-No title catalog ships in the production bundle. Discovery and search query AniList on demand through Hono; Jikan supplies fallback results. SWR restores exact query responses from IndexedDB and refreshes on mount, focus, reconnect, or manual refresh, with 60-second request deduplication and no polling. Provider caches are opportunistic per isolate, not globally shared.
+No title catalog ships in the production bundle. Discovery and search query AniList on demand through Hono. SWR restores exact query responses from IndexedDB and refreshes on mount, focus, reconnect, or manual refresh, with 60-second request deduplication and no polling. Provider caches are opportunistic per isolate, not globally shared.
 
 Fresh discovery/search metadata takes precedence over older local history, saved-title snapshots, and rating snapshots. Every changed candidate collection reruns vectorization and IDF weighting in the worker, then rebuilds the taste profile using existing feedback. Feature hashing keeps dimension identities stable, while weights adapt to the current local corpus. Browser storage stores metadata rather than stale precomputed vectors.
 

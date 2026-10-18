@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import useSWRInfinite from 'swr/infinite';
-import { Globe2, RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
+import { RotateCcw, Search, SlidersHorizontal, X } from 'lucide-react';
 import {
   animeKinds,
   bookKinds,
@@ -104,10 +104,8 @@ export default function BrowsePage() {
     { revalidateFirstPage: false, revalidateOnFocus: false, dedupingInterval: 120000 },
   );
   // Search mode: the existing search endpoint, cached for offline use.
-  const [broaden, setBroaden] = useState(false);
-  useEffect(() => setBroaden(false), [q, section.format]);
   const searchPath = q
-    ? `/api/search?q=${encodeURIComponent(q)}&format=${section.format}&status=${status}${broaden ? '&broaden=1' : ''}`
+    ? `/api/search?q=${encodeURIComponent(q)}&format=${section.format}&status=${status}`
     : null;
   const search = useCatalogSWR(searchPath);
 
@@ -331,14 +329,6 @@ export default function BrowsePage() {
             </span>
           ))}
         </p>
-      )}
-      {q && search.data && section.format !== 'Donghua' && !broaden && (
-        <div className="live-search-bar">
-          <span>
-            <Globe2 size={15} /> Can’t find it? Let’s ask MyAnimeList too.
-          </span>
-          <button onClick={() => setBroaden(true)}>Broaden with Jikan</button>
-        </div>
       )}
       {(search.data?.notice || (error && items.length > 0)) && (
         <p className="status-message" role="status">

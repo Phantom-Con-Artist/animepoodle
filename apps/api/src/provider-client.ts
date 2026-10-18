@@ -1,13 +1,7 @@
 import { CatalogError } from './anilist';
 const agent = 'animepoodle/1.0 (https://github.com/Phantom-Con-Artist/animepoodle)';
 /** Bounded warm-instance cache, request coalescing, pacing and provider cooldowns. */
-export function createProviderClient(
-  name: string,
-  base: string,
-  ttl: number,
-  spacing = 0,
-  timeout = 7000,
-) {
+export function createProviderClient(name: string, base: string, ttl: number, spacing = 0) {
   const cache = new Map<string, { at: number; data: unknown }>();
   const pending = new Map<string, Promise<unknown>>();
   let cooldown = 0;
@@ -36,7 +30,7 @@ export function createProviderClient(
             typeof window === 'undefined'
               ? { Accept: 'application/json', 'User-Agent': agent }
               : { Accept: 'application/json' },
-          signal: AbortSignal.timeout(timeout),
+          signal: AbortSignal.timeout(7000),
         });
       } catch (error) {
         // Unreachable: let queued requests fail at once instead of each waiting out its own
