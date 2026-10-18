@@ -9,7 +9,7 @@ import {
 import { CatalogError, featuresFor, normalizeTrailer } from './anilist';
 import { createProviderClient } from './provider-client';
 import { httpsUrl } from './urls';
-const request = createProviderClient('Jikan', 'https://api.jikan.moe/v4', 900000, 1100);
+const request = createProviderClient('Jikan', 'https://api.jikan.moe/v4', 900000, 1100, 25000);
 interface JikanItem {
   mal_id: number;
   title: string;
