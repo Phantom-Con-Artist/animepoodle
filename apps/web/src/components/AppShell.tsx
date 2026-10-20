@@ -3,11 +3,12 @@ import '@/lib/api-fallback';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { BookOpen, Check, Dog, Library, Menu, Play, Search, Settings2, X } from 'lucide-react';
+import { BookOpen, Check, Library, Menu, Play, Search, Settings2, X } from 'lucide-react';
 import { isWatchFormat } from '@animepoodle/shared';
 import { sections, useApp } from '@/lib/app-state';
 import { useReading } from '@/lib/reading';
 import { useChapterUpdates } from '@/lib/reading-updates';
+import { sectionKanji } from '@/lib/kanji';
 import ThemeToggle from './ThemeToggle';
 import TasteMixer from './TasteMixer';
 
@@ -112,8 +113,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Menu size={20} />
           </button>
           <Link href="/" className="brand" aria-label="animepoodle home">
-            <span className="brand-mark">
-              <Dog size={22} />
+            {/* A hanko seal: 犬, dog. */}
+            <span className="brand-mark" aria-hidden="true">
+              犬
             </span>
             <span className="brand-word">
               animepoodle<span className="brand-dot">.</span>
@@ -177,6 +179,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   }}
                 >
                   {s.verb === 'watch' ? <Play size={14} /> : <BookOpen size={14} />}
+                  <span className="section-kanji" aria-hidden="true">
+                    {sectionKanji[s.format]}
+                  </span>
                   {s.label}
                   <small>{s.origin}</small>
                 </button>
@@ -245,10 +250,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <footer className="site-footer">
+        {/* Kintsugi: the crack is mended in gold and left in plain sight. */}
+        <svg
+          className="footer-seam"
+          viewBox="0 0 1200 30"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M0 14 L52 21 L99 15 L152 11 L201 17 L263 9 L303 9 L365 18 L395 22 L464 17 L517 10 L546 15 L577 11 L615 8 L662 14 L726 15 L780 15 L836 14 L876 22 L946 20 L1004 12 L1041 12 L1072 19 L1117 20 L1161 21 L1200 15" />
+          <path
+            className="footer-seam-branch"
+            d="M99 15 L121 23 M395 22 L411 12 M1072 19 L1084 11 M152 11 L160 20 M836 14 L846 5 M662 14 L670 24"
+          />
+        </svg>
         <div className="site-footer-inner">
           <div className="footer-about">
             <span className="footer-brand">
-              <Dog size={18} /> animepoodle
+              <span className="brand-mark" aria-hidden="true">
+                犬
+              </span>{' '}
+              animepoodle
             </span>
             <p>
               A cosy corner of the internet for finding your next favourite anime, donghua, manga,
@@ -288,6 +310,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </a>
           </div>
         </div>
+        <p className="footer-name" aria-hidden="true">
+          animepoodle<span>アニメプードル</span>
+        </p>
         <p className="footer-credit">
           Data from AniList, AnimeThemes and MangaDex. Chapters are credited to the groups who
           shared them. No ads, ever.

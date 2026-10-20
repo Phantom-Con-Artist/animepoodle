@@ -8,6 +8,7 @@ import { useEngine } from '@/lib/taste-engine';
 import TitleCard from '../TitleCard';
 import TitleGrid from '../TitleGrid';
 import Poodle from '../Poodle';
+import { moodKanji, pageKanji } from '@/lib/kanji';
 
 export default function ForYouPage() {
   const app = useApp();
@@ -20,7 +21,7 @@ export default function ForYouPage() {
   );
   return (
     <main className="page for-you-page">
-      <div className="page-head">
+      <div className="page-head" data-kanji={pageKanji.forYou}>
         <div>
           <h1>For you</h1>
           <p>
@@ -42,7 +43,10 @@ export default function ForYouPage() {
               app.notify(`Showing “${m.name}” ${section.plural}`);
             }}
           >
-            <span aria-hidden="true">{m.emoji}</span> {m.name}
+            <span className="mood-kanji" aria-hidden="true">
+              {moodKanji[m.name] ?? m.emoji}
+            </span>{' '}
+            {m.name}
           </button>
         ))}
       </div>

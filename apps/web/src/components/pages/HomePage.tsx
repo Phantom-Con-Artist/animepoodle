@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Award, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import {
   moods,
   seasonLabel,
@@ -17,6 +17,7 @@ import { getJson, useApi } from '@/lib/useApi';
 import { useEngine, useRemember } from '@/lib/taste-engine';
 import { keyOf, stashStory, storyHref } from '@/lib/story';
 import { useReading } from '@/lib/reading';
+import { moodKanji, railKanji } from '@/lib/kanji';
 import HighlightHero from '../HighlightHero';
 import Rail from '../Rail';
 
@@ -194,11 +195,9 @@ export default function HomePage() {
 
       {section.format === 'Anime' && (
         <section className="awards" aria-labelledby="awards-title">
-          <div className="rail-head">
+          <div className="rail-head" data-kanji={railKanji.awards}>
             <div>
-              <h2 id="awards-title">
-                <Award size={22} /> Anime of the Year
-              </h2>
+              <h2 id="awards-title">Anime of the Year</h2>
               <p>
                 Every show that took home the top prize at the Crunchyroll Anime Awards. Each one
                 earned it.
@@ -253,7 +252,7 @@ export default function HomePage() {
       )}
 
       <section className="mood-section" aria-labelledby="mood-title">
-        <div className="rail-head">
+        <div className="rail-head" data-kanji={railKanji.mood}>
           <div>
             <h2 id="mood-title">What’s the mood tonight?</h2>
             <p>Tell us how you feel and we’ll find {section.plural} to match.</p>
@@ -270,7 +269,9 @@ export default function HomePage() {
                 router.push('/for-you');
               }}
             >
-              <span className="mood-emoji">{m.emoji}</span>
+              <span className="mood-emoji" aria-hidden="true">
+                {moodKanji[m.name] ?? m.emoji}
+              </span>
               <span>
                 <strong>{m.name}</strong>
                 <small>{m.description}</small>

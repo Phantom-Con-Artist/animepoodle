@@ -24,6 +24,7 @@ import TitleCard from '../TitleCard';
 import TitleGrid from '../TitleGrid';
 import LoadingShelf from '../LoadingShelf';
 import Poodle from '../Poodle';
+import { pageKanji } from '@/lib/kanji';
 
 const api = process.env.NEXT_PUBLIC_API_URL || '';
 const sorts = [
@@ -158,7 +159,7 @@ export default function BrowsePage() {
 
   return (
     <main className="page browse-page">
-      <div className="page-head">
+      <div className="page-head" data-kanji={pageKanji.browse}>
         <div>
           <h1>Browse</h1>
           <p>

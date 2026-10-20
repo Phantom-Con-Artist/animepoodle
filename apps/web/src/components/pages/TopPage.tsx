@@ -20,6 +20,7 @@ import { useRemember } from '@/lib/taste-engine';
 import { stashStory, storyHref } from '@/lib/story';
 import { releaseLabel } from '../TitleCard';
 import StatusMenu from '../StatusMenu';
+import { kanjiNumber, pageKanji } from '@/lib/kanji';
 
 const api = process.env.NEXT_PUBLIC_API_URL || '';
 const thisYear = new Date().getFullYear();
@@ -66,7 +67,7 @@ export default function TopPage() {
   const scope = [year || 'All time', genre, kind ? kindLabel(kind) : ''].filter(Boolean).join(', ');
   return (
     <main className="page top-page">
-      <div className="page-head">
+      <div className="page-head" data-kanji={pageKanji.top}>
         <div>
           <h1>Top rated {section.plural}</h1>
           <p>
@@ -127,7 +128,11 @@ export default function TopPage() {
         <ol className="chart">
           {items.map((item, i) => (
             <li key={`${item.format}:${item.id}`} className={`chart-row ${i < 3 ? 'podium' : ''}`}>
-              <span className="chart-rank" aria-label={`Rank ${i + 1}`}>
+              <span
+                className="chart-rank"
+                aria-label={`Rank ${i + 1}`}
+                data-kanji={kanjiNumber(i + 1)}
+              >
                 {i + 1}
               </span>
               <Link

@@ -19,6 +19,7 @@ import TitleCard from '../TitleCard';
 import TitleGrid from '../TitleGrid';
 import StatusMenu from '../StatusMenu';
 import Poodle from '../Poodle';
+import { pageKanji } from '@/lib/kanji';
 
 const sorts = [
   ['updated', 'Recently updated'],
@@ -76,7 +77,7 @@ export default function LibraryPage() {
 
   return (
     <main className="page library-page">
-      <div className="page-head">
+      <div className="page-head" data-kanji={pageKanji.library}>
         <div>
           <h1>My library</h1>
           <p>

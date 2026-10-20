@@ -5,6 +5,7 @@ import { BookOpen, Star } from 'lucide-react';
 import { kindLabel, seasonLabel, type RankedTitle, type Title } from '@animepoodle/shared';
 import { useApp } from '@/lib/app-state';
 import { statusLabel, statusTone } from '@/lib/library';
+import { kanjiNumber } from '@/lib/kanji';
 import { stashStory, storyHref } from '@/lib/story';
 import CardTrailer, { useCanHoverPreview, useHoverIntent } from './CardTrailer';
 import StatusMenu from './StatusMenu';
@@ -91,7 +92,11 @@ export default function TitleCard({
               <strong>{name}</strong>
             </span>
           )}
-          {rank !== undefined && <span className="rank-badge">{rank}</span>}
+          {rank !== undefined && (
+            <span className="rank-badge" aria-label={`Rank ${rank}`}>
+              {kanjiNumber(rank)}
+            </span>
+          )}
           <span className="format-badge">{kindLabel(item.mediaFormat)}</span>
           <span className="poster-rating">
             <Star size={11} fill="currentColor" />

@@ -207,6 +207,12 @@ function Story({ params }: { params: StoryParams }) {
             alt=""
             onError={() => setFailedBanner(banner || null)}
           />
+          {/* The original title hangs from the banner like a tanzaku, the paper strip of a wish. */}
+          {item.titles?.native && /[\u3040-\u30ff\u4e00-\u9fff]/.test(item.titles.native) && (
+            <span className="story-tanzaku" lang="ja" aria-hidden="true">
+              {item.titles.native}
+            </span>
+          )}
         </div>
         <div className="story-head">
           <div className="story-poster" style={{ background: item.color }}>

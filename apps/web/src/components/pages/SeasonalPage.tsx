@@ -23,6 +23,7 @@ import { titleCount } from '@/lib/counts';
 import TitleCard from '../TitleCard';
 import TitleGrid from '../TitleGrid';
 import LoadingShelf from '../LoadingShelf';
+import { seasonKanji } from '@/lib/kanji';
 
 const api = process.env.NEXT_PUBLIC_API_URL || '';
 const order = [...animeKinds, 'MUSIC'];
@@ -85,7 +86,7 @@ export default function SeasonalPage() {
   if (!watch)
     return (
       <main className="page seasonal-page">
-        <div className="page-head">
+        <div className="page-head" data-kanji="年">
           <div>
             <h1>Seasonal</h1>
             <p>
@@ -102,7 +103,7 @@ export default function SeasonalPage() {
 
   return (
     <main className="page seasonal-page">
-      <div className="page-head">
+      <div className="page-head" data-kanji={seasonKanji[season]}>
         <div>
           <h1>
             {seasonLabel(season)} {year}

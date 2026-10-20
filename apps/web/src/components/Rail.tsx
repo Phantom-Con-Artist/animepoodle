@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { uniqueTitles, type RankedTitle, type Title } from '@animepoodle/shared';
+import { railKanji } from '@/lib/kanji';
 import TitleCard from './TitleCard';
 
 const AUTO_TURN_MS = 7000;
@@ -114,7 +115,7 @@ export default function Rail({
   }, [scroll, count, turns]);
   return (
     <section className="rail" aria-labelledby={`${id}-title`} ref={section}>
-      <div className="rail-head">
+      <div className="rail-head" data-kanji={railKanji[id]}>
         <div>
           <h2 id={`${id}-title`}>{title}</h2>
           {description && <p>{description}</p>}

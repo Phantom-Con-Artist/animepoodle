@@ -8,6 +8,7 @@ import { useApp } from '@/lib/app-state';
 import { releaseLabel } from './TitleCard';
 import CardTrailer, { useCanHoverPreview, useHoverIntent } from './CardTrailer';
 import StatusMenu from './StatusMenu';
+import Enso from './Enso';
 
 const ROTATE_MS = 9000;
 // Safety net in case a player never reports that it finished.
@@ -60,6 +61,13 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
   const href = storyHref(current);
   return (
     <section className="highlight" aria-label="Top highlights" aria-roledescription="carousel">
+      {/* A red sun with a cloud band of art drifting across it, ringed by one brush stroke. */}
+      <span className="hero-sun" aria-hidden="true" />
+      <Enso className="hero-enso" />
+      <p className="highlight-label">
+        <span aria-hidden="true">今週の一本</span>
+        {label}
+      </p>
       <div
         className={`highlight-stage ${expanded ? 'is-playing' : ''}`}
         // While a trailer plays it keeps going across the whole stage, "now playing" bar included.
@@ -106,7 +114,6 @@ export default function HighlightHero({ items, label }: { items: Title[]; label:
           onPointerLeave={() => setReadingCopy(false)}
         >
           <div className="highlight-copy" aria-live="polite">
-            <span className="feature-label">{label}</span>
             <h1>{app.name(current)}</h1>
             <div className="hero-meta">
               <span>
